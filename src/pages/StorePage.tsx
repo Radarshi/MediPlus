@@ -2,15 +2,18 @@ import MedicineDetailModal from '@/components/MedicineDetailModel';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { supabase } from '@/lib/supabaseClient';
 import { motion } from 'framer-motion';
 import { Eye, Filter, Heart, Pill, Search, ShoppingCart, Star } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+
 
 const StorePage = () => {
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedMedicine, setSelectedMedicine] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [medicines, setMedicines] = useState([]);
 
   const categories = [
     { id: 'all', name: 'All Medicines', count: 156 },
@@ -19,77 +22,24 @@ const StorePage = () => {
     { id: 'pain-relief', name: 'Pain Relief', count: 28 },
     { id: 'vitamins', name: 'Vitamins', count: 51 }
   ];
+  
+   useEffect(() => {
+    const fetchData = async () => {
+      // Fetch medicines
+      const { data: meds, error: medError } = await supabase
+        .from('medicine_store')
+        .select('*');
+        console.log('Medicine coming',meds);
 
-  const medicines = [
-    {
-      id: 1,
-      name: 'Aspirin 75mg',
-      genericName: 'Acetylsalicylic Acid',
-      category: 'cardiology',
-      price: 12.99,
-      originalPrice: 15.99,
-      rating: 4.8,
-      reviews: 324,
-      inStock: 150,
-      manufacturer: 'PharmaCorp',
-      description: 'Low-dose aspirin for cardiovascular protection',
-      dosage: '75mg once daily',
-      prescription: false,
-      image: '💊',
-      tags: ['Heart Health', 'Blood Thinner', 'Prevention']
-    },
-    {
-      id: 2,
-      name: 'Metformin 500mg',
-      genericName: 'Metformin Hydrochloride',
-      category: 'diabetes',
-      price: 8.50,
-      originalPrice: 10.00,
-      rating: 4.7,
-      reviews: 256,
-      inStock: 89,
-      manufacturer: 'DiabetesCare Ltd',
-      description: 'First-line treatment for type 2 diabetes',
-      dosage: '500mg twice daily',
-      prescription: true,
-      image: '💉',
-      tags: ['Diabetes', 'Blood Sugar', 'Prescription']
-    },
-    {
-      id: 3,
-      name: 'Ibuprofen 400mg',
-      genericName: 'Ibuprofen',
-      category: 'pain-relief',
-      price: 6.75,
-      originalPrice: 8.25,
-      rating: 4.6,
-      reviews: 412,
-      inStock: 200,
-      manufacturer: 'PainAway Inc',
-      description: 'Anti-inflammatory pain reliever',
-      dosage: '400mg as needed',
-      prescription: false,
-      image: '🟡',
-      tags: ['Pain Relief', 'Anti-inflammatory', 'Fever']
-    },
-    {
-      id: 4,
-      name: 'Vitamin D3 1000IU',
-      genericName: 'Cholecalciferol',
-      category: 'vitamins',
-      price: 14.99,
-      originalPrice: 18.99,
-      rating: 4.9,
-      reviews: 189,
-      inStock: 300,
-      manufacturer: 'VitaLife',
-      description: 'Essential vitamin for bone health',
-      dosage: '1000IU daily',
-      prescription: false,
-      image: '☀️',
-      tags: ['Vitamin', 'Bone Health', 'Immunity']
-    }
-  ];
+      if (medError) {
+        console.error('Failed to fetch medicines:', medError.message);
+      } else {
+        setMedicines(meds);
+      }
+    };
+
+    fetchData();
+  }, []);
 
   const filteredMedicines = medicines.filter(medicine => {
     const matchesCategory = selectedCategory === 'all' || medicine.category === selectedCategory;

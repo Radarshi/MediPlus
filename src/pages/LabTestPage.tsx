@@ -2,15 +2,17 @@ import LabTestBookingModal from '@/components/LabTestBookingModal';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { supabase } from '@/lib/supabaseClient';
 import { motion } from 'framer-motion';
-import { Calendar, Clock, Download, Filter, MapPin, Search, Star, TestTube } from 'lucide-react';
-import { useState } from 'react';
+import { Calendar, Clock, Filter, MapPin, Search, Star, TestTube } from 'lucide-react';
+import { useEffect, useState } from 'react';
 
 const LabTestPage = () => {
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedTest, setSelectedTest] = useState(null);
   const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
+  const[labTests,setlabTests] = useState([]);
 
   const categories = [
     { id: 'all', name: 'All Tests', count: 89 },
@@ -21,134 +23,24 @@ const LabTestPage = () => {
     { id: 'hormonal', name: 'Hormonal Tests', count: 12 }
   ];
 
-  const labTests = [
-    {
-      id: 1,
-      name: 'Complete Blood Count (CBC)',
-      category: 'blood',
-      price: 25,
-      originalPrice: 35,
-      duration: '2-4 hours',
-      fasting: false,
-      homeCollection: true,
-      rating: 4.9,
-      reviews: 234,
-      booked: 1250,
-      description: 'Comprehensive blood analysis to check overall health status',
-      includes: ['Red Blood Cell Count', 'White Blood Cell Count', 'Platelet Count', 'Hemoglobin', 'Hematocrit'],
-      preparation: 'No special preparation required',
-      sampleType: 'Blood',
-      reportTime: 'Same day',
-      labName: 'MedLab Diagnostics',
-      icon: '🩸',
-      tags: ['Popular', 'Basic Health Check']
-    },
-    {
-      id: 2,
-      name: 'Lipid Profile',
-      category: 'blood',
-      price: 35,
-      originalPrice: 45,
-      duration: '12 hours',
-      fasting: true,
-      homeCollection: true,
-      rating: 4.8,
-      reviews: 189,
-      booked: 890,
-      description: 'Measures cholesterol and triglyceride levels for heart health assessment',
-      includes: ['Total Cholesterol', 'HDL Cholesterol', 'LDL Cholesterol', 'Triglycerides', 'VLDL'],
-      preparation: '12-hour fasting required',
-      sampleType: 'Blood',
-      reportTime: '24 hours',
-      labName: 'CardioLab Center',
-      icon: '❤️',
-      tags: ['Heart Health', 'Fasting Required']
-    },
-    {
-      id: 3,
-      name: 'Thyroid Function Test (TFT)',
-      category: 'hormonal',
-      price: 45,
-      originalPrice: 60,
-      duration: '24 hours',
-      fasting: false,
-      homeCollection: true,
-      rating: 4.7,
-      reviews: 156,
-      booked: 670,
-      description: 'Evaluates thyroid gland function and hormone levels',
-      includes: ['TSH', 'Free T3', 'Free T4', 'Anti-TPO', 'Thyroglobulin'],
-      preparation: 'No special preparation required',
-      sampleType: 'Blood',
-      reportTime: '24-48 hours',
-      labName: 'EndoLab Institute',
-      icon: '🦋',
-      tags: ['Hormonal', 'Metabolism']
-    },
-    {
-      id: 4,
-      name: 'Diabetes Panel (HbA1c)',
-      category: 'blood',
-      price: 30,
-      originalPrice: 40,
-      duration: '24 hours',
-      fasting: false,
-      homeCollection: true,
-      rating: 4.8,
-      reviews: 198,
-      booked: 950,
-      description: 'Comprehensive diabetes screening and monitoring panel',
-      includes: ['HbA1c', 'Fasting Glucose', 'Random Glucose', 'Insulin Level'],
-      preparation: 'No fasting required for HbA1c',
-      sampleType: 'Blood',
-      reportTime: '24 hours',
-      labName: 'DiabetesCheck Lab',
-      icon: '🍯',
-      tags: ['Diabetes', 'Popular']
-    },
-    {
-      id: 5,
-      name: 'Chest X-Ray',
-      category: 'imaging',
-      price: 55,
-      originalPrice: 70,
-      duration: '30 minutes',
-      fasting: false,
-      homeCollection: false,
-      rating: 4.6,
-      reviews: 145,
-      booked: 420,
-      description: 'Digital chest X-ray for lung and heart examination',
-      includes: ['PA View', 'Lateral View', 'Digital Images', 'Radiologist Report'],
-      preparation: 'Remove metal jewelry and clothing from chest area',
-      sampleType: 'X-Ray Imaging',
-      reportTime: '2-4 hours',
-      labName: 'Imaging Center Plus',
-      icon: '🫁',
-      tags: ['Imaging', 'Lung Health']
-    },
-    {
-      id: 6,
-      name: 'Urine Complete Analysis',
-      category: 'urine',
-      price: 15,
-      originalPrice: 25,
-      duration: '1-2 hours',
-      fasting: false,
-      homeCollection: true,
-      rating: 4.5,
-      reviews: 167,
-      booked: 780,
-      description: 'Complete urine examination for kidney and urinary tract health',
-      includes: ['Physical Examination', 'Chemical Analysis', 'Microscopic Examination', 'Protein Levels'],
-      preparation: 'Clean catch midstream urine sample',
-      sampleType: 'Urine',
-      reportTime: 'Same day',
-      labName: 'UroCare Diagnostics',
-      icon: '🧪',
-      tags: ['Kidney Health', 'Quick Results']
-    }
-  ];
+
+  useEffect(()=>{
+    const fetchData = async () =>{
+      const {data:labTests, error: testError} = await supabase
+      .from('lab_tests')
+      .select('*');
+
+      if (testError) {
+        console.error('Failed to fetch medicines:', testError.message);
+      } else {
+        console.log(labTests);
+        
+        setlabTests(labTests);
+      }
+    };
+    fetchData();
+  },[])
+
 
   const filteredTests = labTests.filter(test => {
     const matchesCategory = selectedCategory === 'all' || test.category === selectedCategory;
@@ -345,7 +237,7 @@ const LabTestPage = () => {
 
                         <div className="flex items-center justify-between mb-4">
                           <div>
-                            <span className="text-2xl font-bold text-teal-600">${test.price}</span>
+                            <span className="text-2xl font-bold text-teal-600">{test.price} Rs.</span>
                             {test.originalPrice > test.price && (
                               <span className="text-sm text-gray-500 line-through ml-2">
                                 ${test.originalPrice}
@@ -353,7 +245,7 @@ const LabTestPage = () => {
                             )}
                           </div>
                           <div className="text-right">
-                            <div className="text-xs text-gray-500">by {test.labName}</div>
+                            <div className="text-xs text-gray-500">at {test.labName}</div>
                           </div>
                         </div>
 
@@ -364,9 +256,6 @@ const LabTestPage = () => {
                           >
                             <Calendar className="w-4 h-4 mr-2" />
                             Book Test
-                          </Button>
-                          <Button variant="outline" size="sm" className="px-3">
-                            <Download className="w-4 h-4" />
                           </Button>
                         </div>
                       </div>

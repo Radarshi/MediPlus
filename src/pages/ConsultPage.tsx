@@ -1,15 +1,16 @@
-import React, { useState } from 'react';
-import { motion } from 'framer-motion';
-import { ArrowLeft, Video, MessageCircle, Phone, Star, Calendar, Clock, Award, Shield, Users } from 'lucide-react';
+import ConsultationPricingModal from '@/components/ConsultationPricingModal';
+import DoctorDetailModal from '@/components/DoctorDetailModal';
+import PaymentModal from '@/components/PaymentModal';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Textarea } from '@/components/ui/textarea';
+import { motion } from 'framer-motion';
+import { ArrowLeft, Award, Clock, MessageCircle, Phone, Shield, Star, Video } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import DoctorDetailModal from '@/components/DoctorDetailModal';
-import ConsultationPricingModal from '@/components/ConsultationPricingModal';
-import PaymentModal from '@/components/PaymentModal';
+import { supabase } from '../lib/supabaseClient';
 
 type ConsultationType = 'video' | 'phone' | 'chat';
 
@@ -19,6 +20,7 @@ const ConsultPage = () => {
   const [showDoctorDetail, setShowDoctorDetail] = useState(false);
   const [showPricingModal, setShowPricingModal] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const[doctors,setDoctors] = useState([]);
   const [selectedConsultationType, setSelectedConsultationType] = useState<ConsultationType>('video');
   const [selectedPlan, setSelectedPlan] = useState(null);
 
@@ -31,63 +33,21 @@ const ConsultPage = () => {
     { id: 'psychiatry', name: 'Psychiatry', doctors: 5, icon: '🧠' }
   ];
 
-  const doctors = [
-    {
-      id: 1,
-      name: 'Dr. Sarah Johnson',
-      specialty: 'General Medicine',
-      experience: '12 years',
-      rating: 4.9,
-      reviews: 324,
-      consultations: 1250,
-      languages: ['English', 'Spanish'],
-      education: 'Harvard Medical School',
-      videoPrice: 79,
-      phonePrice: 49,
-      chatPrice: 35,
-      availability: 'Available Now',
-      image: '👩‍⚕️',
-      specializations: ['Internal Medicine', 'Preventive Care', 'Chronic Disease Management'],
-      about: 'Dr. Johnson specializes in comprehensive primary care with focus on preventive medicine and chronic disease management.'
-    },
-    {
-      id: 2,
-      name: 'Dr. Michael Chen',
-      specialty: 'Cardiology',
-      experience: '15 years',
-      rating: 4.8,
-      reviews: 256,
-      consultations: 980,
-      languages: ['English', 'Mandarin'],
-      education: 'Johns Hopkins University',
-      videoPrice: 129,
-      phonePrice: 79,
-      chatPrice: 59,
-      availability: 'Next available: 2:30 PM',
-      image: '👨‍⚕️',
-      specializations: ['Interventional Cardiology', 'Heart Failure', 'Arrhythmia'],
-      about: 'Renowned cardiologist with expertise in complex cardiac procedures and heart disease prevention.'
-    },
-    {
-      id: 3,
-      name: 'Dr. Emily Davis',
-      specialty: 'Dermatology',
-      experience: '10 years',
-      rating: 4.9,
-      reviews: 189,
-      consultations: 750,
-      languages: ['English', 'French'],
-      education: 'Stanford Medical School',
-      videoPrice: 99,
-      phonePrice: 69,
-      chatPrice: 45,
-      availability: 'Available in 30 min',
-      image: '👩‍⚕️',
-      specializations: ['Cosmetic Dermatology', 'Skin Cancer', 'Acne Treatment'],
-      about: 'Expert dermatologist focused on both medical and cosmetic dermatology with cutting-edge treatments.'
-    }
-  ];
 
+  useEffect(()=>{
+    const fetchData = async ()=>{
+      const {data: doctors, error: docError} = await supabase
+      .from('consult')
+      .select('*')
+
+      if(docError)
+          console.error('Failed to fetch data',docError.message);
+      else
+        setDoctors(doctors);
+    }
+    fetchData();
+
+  },[])
   const consultationTypes = [
     {
       type: 'video' as ConsultationType,

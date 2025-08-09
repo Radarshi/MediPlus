@@ -1,19 +1,21 @@
-
-import { useState, useEffect } from "react";
-import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
+import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
+// Remove Clerk imports from App.tsx as they will be in Navbar.tsx
+// import { SignedIn, SignedOut, SignInButton, UserButton } from '@clerk/clerk-react';
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AnimatePresence } from "framer-motion";
-import Navbar from "./components/Navbar";
+import { useEffect, useState } from "react";
+import { BrowserRouter, Route, Routes } from "react-router-dom";
+
 import LoadingScreen from "./components/LoadingScreen";
-import Index from "./pages/Index";
-import StorePage from "./pages/StorePage";
+import Navbar from "./components/Navbar"; // Navbar is still imported
 import ConsultPage from "./pages/ConsultPage";
-import LabTestPage from "./pages/LabTestPage";
 import HealthBlogPage from "./pages/HealthBlogPage";
+import Index from "./pages/Index";
+import LabTestPage from "./pages/LabTestPage";
 import NotFound from "./pages/NotFound";
+import StorePage from "./pages/StorePage";
 
 const queryClient = new QueryClient();
 
@@ -40,6 +42,7 @@ const App = () => {
               <LoadingScreen key="loading" />
             ) : (
               <div key="app" className="min-h-screen">
+                {/* Navbar now handles Clerk components internally */}
                 <Navbar />
                 <Routes>
                   <Route path="/" element={<Index />} />

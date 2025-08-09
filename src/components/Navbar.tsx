@@ -1,12 +1,13 @@
 import { Button } from '@/components/ui/button';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Menu, ShoppingCart, User, X } from 'lucide-react';
+import { Menu, ShoppingCart, X } from 'lucide-react';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import Logo from '../assests/med_logo.png';
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
+
 
   const navItems = [
     { name: 'Home', href: '/' },
@@ -32,6 +33,8 @@ const Navbar = () => {
       },
     },
   };
+
+
 
   return (
     <nav className="bg-white shadow-lg border-b sticky top-0 z-50">
@@ -63,10 +66,6 @@ const Navbar = () => {
           <div className="hidden lg:flex items-center space-x-4">
             <Button variant="ghost" size="sm" className="text-gray-700 hover:text-indigo-600">
               <ShoppingCart className="w-4 h-4" />
-            </Button>
-            <Button variant="ghost" size="sm" className="text-gray-700 hover:text-indigo-600">
-              <User className="w-4 h-4 mr-2" />
-              Sign In
             </Button>
           </div>
 
@@ -107,15 +106,6 @@ const Navbar = () => {
                     {item.name}
                   </Link>
                 ))}
-                
-                {/* Mobile Action Buttons */}
-                <div className="pt-4 space-y-2 border-t border-gray-200 mt-4">
-                  
-                  <Button variant="ghost" className="w-full justify-start text-gray-700 hover:text-indigo-600">
-                    <User className="w-4 h-4 mr-2" />
-                    Sign In
-                  </Button>
-                </div>
               </div>
             </motion.div>
           )}
