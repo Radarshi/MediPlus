@@ -106,8 +106,8 @@ const HealthBlogPage = () => {
             <Carousel className="w-full">
               <CarouselContent>
                 {featuredPosts.map((post, index) => (
-                  <CarouselItem key={post._id?.$oid || post._id}>
-                    <motion.div key={post._id?.$oid || post._id}
+                  <CarouselItem key={post.id}>
+                    <motion.div
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: index * 0.1 }}
@@ -158,7 +158,7 @@ const HealthBlogPage = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredPosts.map((post, index) => (
               <motion.div
-                key={post._id?.$oid || post._id}
+                key={post.id}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.1 }}
@@ -173,7 +173,7 @@ const HealthBlogPage = () => {
                     
                     <div className="flex flex-wrap gap-1 mb-4">
                       {post.tags.map((tag, idx) => (
-                        <span key={`${post._id}-tag-${idx}`} className="text-xs bg-indigo-100 text-indigo-700 px-2 py-1 rounded-full">
+                        <span key={idx} className="text-xs bg-indigo-100 text-indigo-700 px-2 py-1 rounded-full">
                           {tag}
                         </span>
                       ))}
@@ -226,9 +226,9 @@ const HealthBlogPage = () => {
                 Get the latest health insights, tips, and expert advice delivered to your inbox weekly.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 max-w-md mx-auto">
-                <Input
-                  placeholder="Enter your email"
-                  className="bg-white text-gray-900"
+                <Input 
+                  placeholder="Enter your email" 
+                  className="bg-white text-gray-900" 
                 />
                 <Button variant="secondary" className="bg-white text-indigo-600 hover:bg-gray-100">
                   Subscribe

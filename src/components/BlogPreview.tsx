@@ -1,9 +1,7 @@
-
-import React from 'react';
-import { motion } from 'framer-motion';
-import { useInView } from 'react-intersection-observer';
-import { ArrowRight, Calendar, User, Tag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { motion } from 'framer-motion';
+import { ArrowRight, Calendar, Tag, User } from 'lucide-react';
+import { useInView } from 'react-intersection-observer';
 import { Link } from 'react-router-dom';
 
 const BlogPreview = () => {
@@ -167,7 +165,7 @@ const BlogPreview = () => {
               Share Your Health Story
             </h3>
             <p className="text-gray-600 mb-6">
-              Have a health tip or inspiring story to share? Join our community of health enthusiasts 
+              Have a health tip or inspiring story to share? Join our community of health enthusiasts
               and contribute to our growing collection of wellness resources.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">

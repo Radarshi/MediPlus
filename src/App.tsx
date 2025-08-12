@@ -1,15 +1,14 @@
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-// Remove Clerk imports from App.tsx as they will be in Navbar.tsx
-// import { SignedIn, SignedOut, SignInButton, UserButton } from '@clerk/clerk-react';
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AnimatePresence } from "framer-motion";
 import { useEffect, useState } from "react";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 
+import PostBlog from '@/components/BlogFormPopup';
 import LoadingScreen from "./components/LoadingScreen";
-import Navbar from "./components/Navbar"; // Navbar is still imported
+import Navbar from "./components/Navbar";
 import ConsultPage from "./pages/ConsultPage";
 import HealthBlogPage from "./pages/HealthBlogPage";
 import Index from "./pages/Index";
@@ -47,6 +46,7 @@ const App = () => {
                 <Routes>
                   <Route path="/" element={<Index />} />
                   <Route path="/store" element={<StorePage />} />
+                  <Route path="/post" element={<PostBlog isOpen={true} blogTitle={""}/>}></Route>
                   <Route path="/consult" element={<ConsultPage />} />
                   <Route path="/lab-tests" element={<LabTestPage />} />
                   <Route path="/health-blog" element={<HealthBlogPage />} />
