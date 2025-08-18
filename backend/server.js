@@ -1,31 +1,23 @@
-import cors from 'cors';
-import dotenv from 'dotenv';
 import express from 'express';
-import mongoose from 'mongoose';
-import blogRoutes from './routes/blogInteraction.js';
+import dotenv from 'dotenv';
+dotenv.config();
+import cors from 'cors';
+import morgan from 'morgan';
+import connectDB from './db/authdb.js';
+import authform from './routes/authform.js';
 
-dotenv.config()
+
+
+connectDB();
 
 const app = express();
-const port = process.env.PORT;
 
-app.use(cors({
-  origin: 'http://localhost:8080',
-  methods: ['GET', 'POST', 'PUT', 'DELETE'],
-  allowedHeaders: ['Content-Type', 'Authorization']
-}));
+app.use(cors());
+app.use(express.json());
+app.use(morgan('dev'));
 
-app.use(express.json())
+app.use('/api/auth', authform); 
 
-mongoose.connect(process.env.MONGO_URI)
-    .then(() => console.log('✅ MongoDB Connected'))
-    .catch(err => console.error('❌ MongoDB connection error:', err));
-
-// Test route
-app.get('/', (req, res) => {
-    res.send('API is running...');
+app.listen(process.env.PORT, () => {
+  console.log(`Server running on port ${process.env.PORT}`);
 });
-
-app.use('/api/blogs',blogRoutes)
-
-app.listen(port,()=> console.log(`listening on ${port}`))

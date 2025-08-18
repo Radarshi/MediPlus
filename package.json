@@ -1,5 +1,5 @@
 {
-  "name": "Mediplus",
+  "name": "mediplus",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -85,5 +85,17 @@
     "typescript": "^5.5.3",
     "typescript-eslint": "^8.0.1",
     "vite": "^5.4.1"
-  }
+  },
+  "main": "eslint.config.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Radarshi/MediPlus.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Radarshi/MediPlus/issues"
+  },
+  "homepage": "https://github.com/Radarshi/MediPlus#readme",
+  "description": ""
 }

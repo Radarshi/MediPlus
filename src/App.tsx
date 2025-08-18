@@ -5,7 +5,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AnimatePresence } from "framer-motion";
 import { useEffect, useState } from "react";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
-
+import Signup from './pages/Signup';
+import Login from './pages/Login';
 import PostBlog from '@/components/BlogFormPopup';
 import LoadingScreen from "./components/LoadingScreen";
 import Navbar from "./components/Navbar";
@@ -45,6 +46,8 @@ const App = () => {
                 <Navbar />
                 <Routes>
                   <Route path="/" element={<Index />} />
+                  <Route path="/signup" element={<Signup />} />
+                  <Route path="/login" element={<Login />} />
                   <Route path="/store" element={<StorePage />} />
                   <Route path="/post" element={<PostBlog isOpen={true} blogTitle={""}/>}></Route>
                   <Route path="/consult" element={<ConsultPage />} />
