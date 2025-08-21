@@ -1,15 +1,17 @@
+
 import AuthForm from '../components/Authform';
 
-export default function Login() {
+const Login = () => {
+
   const handleLogin = async (form) => {
-    const res = await fetch('http://localhost:5000/api/auth/login', {
+    const res = await fetch('http://localhost:3000/api/auth/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(form),
     });
     const data = await res.json();
     if (!res.ok) alert(data.error || 'Login failed');
-    else {localStorage.setItem('token', data.token) 
+    else {localStorage.setItem('token', data.token);
       console.log(data.token);
     };
     console.log("login successful");
@@ -18,3 +20,5 @@ export default function Login() {
 
   return <AuthForm type="login" onSubmit={handleLogin} />;
 }
+
+export default Login

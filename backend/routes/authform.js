@@ -1,20 +1,22 @@
 import express from 'express';
-import User from '../models/user.js';
 import generateToken from '../generatetoken.js';
+import User from '../models/user.js';
 
 const router = express.Router();
 
-router.post('/signup', async (req, res) => {
+router.post('/api/signup', async (req, res) => {
   try {
     const { name, age, gender, email, phone, password } = req.body;
     const exists = await User.findOne({ email });
     if (exists) return res.status(400).json({ error: 'Email already registered' });
+    
 
     const user = await User.create({ name, age, gender, email, phone, password });
     const token = generateToken(user._id);
 
     res.status(201).json({ token });
   } catch (err) {
+    console.log(err);
     res.status(500).json({ error: 'Server error' });
   }
 });

@@ -10,6 +10,7 @@
     "lint": "eslint .",
     "preview": "vite preview"
   },
+  "proxy": "http://localhost:3000",
   "dependencies": {
     "@clerk/clerk-react": "^5.35.3",
     "@hookform/resolvers": "^3.9.0",

@@ -1,8 +1,8 @@
-
-import React from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { X, Star, Calendar, Award, Clock, Phone, Video, MessageCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { supabase } from '@/lib/supabaseClient';
+import { AnimatePresence, motion } from 'framer-motion';
+import { Award, Calendar, Clock, MessageCircle, Phone, Star, Video, X } from 'lucide-react';
+import { useEffect, useState } from 'react';
 
 interface DoctorDetailModalProps {
   doctor: any;
@@ -11,6 +11,23 @@ interface DoctorDetailModalProps {
 }
 
 const DoctorDetailModal = ({ doctor, isOpen, onClose }: DoctorDetailModalProps) => {
+      const[doctors,setDoctors] = useState([]);
+  
+
+  useEffect(()=>{
+      const fetchData = async ()=>{
+        const {data: doctors, error: docError} = await supabase
+        .from('consult')
+        .select('*')
+  
+        if(docError)
+            console.error('Failed to fetch data',docError.message);
+        else
+          setDoctors(doctors);
+      }
+      fetchData();
+  
+    },[])
   if (!doctor) return null;
 
   return (
@@ -67,9 +84,9 @@ const DoctorDetailModal = ({ doctor, isOpen, onClose }: DoctorDetailModalProps) 
                   <div>
                     <h3 className="text-lg font-semibold mb-3">About Dr. {doctor.name.split(' ')[1]}</h3>
                     <p className="text-gray-700 leading-relaxed">
-                      Dr. {doctor.name.split(' ')[1]} is a highly experienced {doctor.specialty.toLowerCase()} 
-                      with over {doctor.experience} of practice. Known for their compassionate care and 
-                      innovative treatment approaches, they have helped thousands of patients achieve 
+                      Dr. {doctor.name.split(' ')[1]} is a highly experienced {doctor.specialty.toLowerCase()}
+                      with over {doctor.experience} of practice. Known for their compassionate care and
+                      innovative treatment approaches, they have helped thousands of patients achieve
                       better health outcomes.
                     </p>
                   </div>
@@ -191,7 +208,7 @@ const DoctorDetailModal = ({ doctor, isOpen, onClose }: DoctorDetailModalProps) 
               {/* Action Buttons */}
               <div className="flex gap-3 mt-8 pt-6 border-t">
                 <Button className="flex-1 bg-gradient-to-r from-blue-500 to-green-500">
-                  Book Video Consultation - ${doctor.videoPrice}
+                  Book Video Consultation
                 </Button>
                 <Button variant="outline" className="flex-1">
                   Schedule Later
