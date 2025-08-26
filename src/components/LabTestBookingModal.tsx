@@ -1,10 +1,9 @@
-
-import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { X, Calendar, Clock, MapPin, User, Phone, Mail } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { AnimatePresence, motion } from 'framer-motion';
+import { Calendar, Clock, Mail, MapPin, Phone, User, X } from 'lucide-react';
+import { useState } from 'react';
 
 interface LabTestBookingModalProps {
   test: any;
@@ -21,16 +20,35 @@ const LabTestBookingModal = ({ test, isOpen, onClose }: LabTestBookingModalProps
     address: '',
     date: '',
     time: '',
-    notes: ''
+    instruction: ''
   });
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
-  const handleSubmit = () => {
-    // Handle form submission
-    console.log('Test booked:', formData);
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault(); // ✅ prevent page reload
+
+    const formData = new FormData(e.currentTarget);
+    const form = Object.fromEntries(formData.entries());
+
+    const res = await fetch('http://localhost:3000/api/lab-booking', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(form),
+    });
+    const data = await res.json();
+    console.log(data);
+    
+    if(res.status==201)
+        alert('Lab Test session is booked.');
+    if (!res.ok)
+      alert(data.error || 'Something went error');
+    else{
+      localStorage.setItem('token', data.token);
+      alert('Your session is booked.')
+    }
     onClose();
   };
 
@@ -74,6 +92,7 @@ const LabTestBookingModal = ({ test, isOpen, onClose }: LabTestBookingModalProps
 
             {/* Content */}
             <div className="p-6 overflow-y-auto max-h-[calc(90vh-200px)]">
+              <form onSubmit={handleSubmit}>
               {step === 1 && (
                 <div className="space-y-6">
                   <h2 className="text-xl font-semibold">Test Details</h2>
@@ -122,6 +141,7 @@ const LabTestBookingModal = ({ test, isOpen, onClose }: LabTestBookingModalProps
                 <div className="space-y-6">
                   <h2 className="text-xl font-semibold">Personal Information</h2>
                   
+                  
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium mb-2">
@@ -132,6 +152,8 @@ const LabTestBookingModal = ({ test, isOpen, onClose }: LabTestBookingModalProps
                         placeholder="Enter your full name"
                         value={formData.name}
                         onChange={(e) => handleInputChange('name', e.target.value)}
+                        name='name'
+                        required
                       />
                     </div>
                     <div>
@@ -143,6 +165,8 @@ const LabTestBookingModal = ({ test, isOpen, onClose }: LabTestBookingModalProps
                         placeholder="Enter your phone number"
                         value={formData.phone}
                         onChange={(e) => handleInputChange('phone', e.target.value)}
+                        name='phone'
+                        required
                       />
                     </div>
                     <div className="md:col-span-2">
@@ -155,6 +179,7 @@ const LabTestBookingModal = ({ test, isOpen, onClose }: LabTestBookingModalProps
                         placeholder="Enter your email address"
                         value={formData.email}
                         onChange={(e) => handleInputChange('email', e.target.value)}
+                        name='email'
                       />
                     </div>
                     <div className="md:col-span-2">
@@ -166,6 +191,7 @@ const LabTestBookingModal = ({ test, isOpen, onClose }: LabTestBookingModalProps
                         placeholder="Enter your complete address for sample collection"
                         value={formData.address}
                         onChange={(e) => handleInputChange('address', e.target.value)}
+                        name='address'
                       />
                     </div>
                   </div>
@@ -198,6 +224,7 @@ const LabTestBookingModal = ({ test, isOpen, onClose }: LabTestBookingModalProps
                         type="date"
                         value={formData.date}
                         onChange={(e) => handleInputChange('date', e.target.value)}
+                        name='date'
                       />
                     </div>
                     <div>
@@ -209,6 +236,7 @@ const LabTestBookingModal = ({ test, isOpen, onClose }: LabTestBookingModalProps
                         className="w-full p-2 border rounded-lg"
                         value={formData.time}
                         onChange={(e) => handleInputChange('time', e.target.value)}
+                        name='time'
                       >
                         <option value="">Select time</option>
                         <option value="morning">Morning (9 AM - 12 PM)</option>
@@ -220,8 +248,9 @@ const LabTestBookingModal = ({ test, isOpen, onClose }: LabTestBookingModalProps
                       <label className="block text-sm font-medium mb-2">Special Instructions</label>
                       <Textarea
                         placeholder="Any special instructions or notes"
-                        value={formData.notes}
-                        onChange={(e) => handleInputChange('notes', e.target.value)}
+                        value={formData.instruction}
+                        onChange={(e) => handleInputChange('instruction', e.target.value)}
+                        name='instruction'
                       />
                     </div>
                   </div>
@@ -239,8 +268,8 @@ const LabTestBookingModal = ({ test, isOpen, onClose }: LabTestBookingModalProps
                     <Button variant="outline" onClick={() => setStep(2)}>
                       Back
                     </Button>
-                    <Button 
-                      onClick={handleSubmit}
+                    <Button
+                      type='submit'
                       className="flex-1 bg-gradient-to-r from-teal-500 to-cyan-600"
                     >
                       Confirm Booking
@@ -248,6 +277,7 @@ const LabTestBookingModal = ({ test, isOpen, onClose }: LabTestBookingModalProps
                   </div>
                 </div>
               )}
+              </form>
             </div>
           </motion.div>
         </motion.div>

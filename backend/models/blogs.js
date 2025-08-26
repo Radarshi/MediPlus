@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { initUserConnection } from "../db/connections.js";
 
 const blogSchema = new mongoose.Schema({
   id: {
@@ -50,21 +51,24 @@ const counterSchema = new mongoose.Schema({
   seq: { type: Number, default: 0 }
 });
 
-const Counter = mongoose.model('Counter', counterSchema);
+export async function getBlogModel() {
+  const connection = await initUserConnection();
 
-blogSchema.pre('save', async function (next) {
-  if (this.isNew) {
-    const counter = await Counter.findByIdAndUpdate(
-      { _id: 'blogId' },
-      { $inc: { seq: 1 } },
-      { new: true, upsert: true }
-    );
-    this.id = counter.seq;
-  }
-  next();
-});
+  // Use connection-bound Counter
+  const Counter = connection.model("Counter", counterSchema);
 
+  // Pre-save hook with connection-bound Counter
+  blogSchema.pre("save", async function (next) {
+    if (this.isNew) {
+      const counter = await Counter.findByIdAndUpdate(
+        { _id: "blogId" },
+        { $inc: { seq: 1 } },
+        { new: true, upsert: true }
+      );
+      this.id = counter.seq;
+    }
+    next();
+  });
 
-const Blog = mongoose.model("Blog", blogSchema);
-
-export default Blog;
+  return connection.model("Blog", blogSchema);
+}

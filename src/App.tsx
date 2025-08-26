@@ -1,3 +1,4 @@
+import PostBlog from '@/components/BlogFormPopup';
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -5,16 +6,16 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AnimatePresence } from "framer-motion";
 import { useEffect, useState } from "react";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
-import Signup from './pages/Signup';
-import Login from './pages/Login';
-import PostBlog from '@/components/BlogFormPopup';
+import { CartProvider } from "./components/cartcontext.tsx";
 import LoadingScreen from "./components/LoadingScreen";
 import Navbar from "./components/Navbar";
 import ConsultPage from "./pages/ConsultPage";
 import HealthBlogPage from "./pages/HealthBlogPage";
 import Index from "./pages/Index";
 import LabTestPage from "./pages/LabTestPage";
+import Login from './pages/Login';
 import NotFound from "./pages/NotFound";
+import Signup from './pages/Signup';
 import StorePage from "./pages/StorePage";
 
 const queryClient = new QueryClient();
@@ -23,11 +24,9 @@ const App = () => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Simulate loading time
     const timer = setTimeout(() => {
       setIsLoading(false);
     }, 2500);
-
     return () => clearTimeout(timer);
   }, []);
 
@@ -37,6 +36,7 @@ const App = () => {
         <Toaster />
         <Sonner />
         <BrowserRouter>
+        <CartProvider>
           <AnimatePresence mode="wait">
             {isLoading ? (
               <LoadingScreen key="loading" />
@@ -58,6 +58,7 @@ const App = () => {
               </div>
             )}
           </AnimatePresence>
+          </CartProvider>
         </BrowserRouter>
       </TooltipProvider>
     </QueryClientProvider>

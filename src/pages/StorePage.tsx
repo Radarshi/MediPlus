@@ -1,10 +1,11 @@
+import { useCart } from '@/components/cartcontext.tsx';
 import MedicineDetailModal from '@/components/MedicineDetailModel';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { supabase } from '@/lib/supabaseClient';
 import { motion } from 'framer-motion';
-import { Eye, Filter, Heart, Pill, Search, ShoppingCart, Star } from 'lucide-react';
+import { Eye, Heart, Pill, Search, ShoppingCart, Star } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 
@@ -22,6 +23,9 @@ const StorePage = () => {
     { id: 'pain-relief', name: 'Pain Relief', count: 28 },
     { id: 'vitamins', name: 'Vitamins', count: 51 }
   ];
+
+  const { addToCart } = useCart();
+
   
    useEffect(() => {
     const fetchData = async () => {
@@ -29,8 +33,7 @@ const StorePage = () => {
       const { data: meds, error: medError } = await supabase
         .from('medicine_store')
         .select('*');
-        console.log('Medicine coming',meds);
-
+        
       if (medError) {
         console.error('Failed to fetch medicines:', medError.message);
       } else {
@@ -75,10 +78,6 @@ const StorePage = () => {
                   className="pl-10 w-64"
                 />
               </div>
-              <Button variant="outline" size="sm">
-                <Filter className="w-4 h-4 mr-2" />
-                Filter
-              </Button>
             </div>
           </div>
         </div>
@@ -205,13 +204,14 @@ const StorePage = () => {
                         </div>
 
                         <div className="flex gap-2">
-                          <Button className="flex-1 bg-gradient-to-r from-blue-500 to-green-500">
+                          <Button className="flex-1 bg-gradient-to-r from-blue-500 to-green-500"
+                          onClick={() => addToCart({ id: medicine.id, name: medicine.name, price: medicine.price,}) }>
                             <ShoppingCart className="w-4 h-4 mr-2" />
                             Add to Cart
                           </Button>
                           <Button 
-                            variant="outline" 
-                            size="sm" 
+                            variant="outline"
+                            size="sm"
                             className="px-3"
                             onClick={() => handleViewMedicine(medicine)}
                           >

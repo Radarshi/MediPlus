@@ -1,10 +1,8 @@
-// routes/blogRoutes.js
 import express from "express";
 import Blog from "../models/blogs.js";
 
 const router = express.Router();
 
-// GET all blogs
 router.get("/", async (req, res) => {
   try {
     const blogs = await Blog.find().sort({createdAt:-1});
@@ -16,7 +14,6 @@ router.get("/", async (req, res) => {
   }
 });
 
-// Get a single blog by ID
 router.get("/:id", async (req, res) => {
   try {
     const blog = await Blog.findById(req.params.id);

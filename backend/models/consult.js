@@ -1,9 +1,13 @@
 import mongoose from "mongoose";
-import connectDB from "../db/connections.js";
+import { initConsultConnection } from "../db/connections.js";
 
-const { consultConnection } = await connectDB();
 
 const consultSchema = new mongoose.Schema({
+      userId: {
+        type: String,
+        ref: "User",
+        required: true
+    },
     name: {
         type : String,
         required : true
@@ -30,6 +34,8 @@ const consultSchema = new mongoose.Schema({
     },
 },{timestamps:true})
 
-const Consult = consultConnection.model("Consult", consultSchema);
+export async function getConsultModel() {
+  const connection = await initConsultConnection();
+  return connection.model("Consult", consultSchema);
+}
 
-export default Consult;

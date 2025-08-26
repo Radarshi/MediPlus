@@ -1,13 +1,22 @@
+import { useCart } from "@/components/cartcontext.tsx";
 import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { AnimatePresence, motion } from 'framer-motion';
-import { Menu, ShoppingCart, X } from 'lucide-react';
+import { Minus, Plus, ShoppingCart, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import Logo from '../assests/med_logo.png';
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
-
+  const {cart, increaseQuantity, decreaseQuantity, removeFromCart} = useCart();
+  const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
 
   const navItems = [
     { name: 'Home', href: '/' },
@@ -33,8 +42,6 @@ const Navbar = () => {
       },
     },
   };
-
-
 
   return (
     <nav className="bg-white shadow-lg border-b sticky top-0 z-50">
@@ -64,24 +71,184 @@ const Navbar = () => {
 
           {/* Desktop Action Buttons */}
           <div className="hidden lg:flex items-center space-x-4">
-            <Button variant="ghost" size="sm" className="text-gray-700 hover:text-indigo-600">
-              <ShoppingCart className="w-4 h-4" />
-            </Button>
+           <Dialog>
+              <DialogTrigger asChild>
+              <div className="relative">
+              <Button variant="ghost" size="sm" className="text-gray-700 hover:text-indigo-600">
+                <ShoppingCart className="w-5 h-5" />
+              </Button>
+              {totalItems > 0 && (
+              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
+              {totalItems}</span>)}
+          </div>
+              </DialogTrigger>
+
+  {/* Modal Content */}
+  <DialogContent className="sm:max-w-lg">
+    <DialogHeader>
+      <DialogTitle>Your Cart</DialogTitle>
+    </DialogHeader>
+
+    {cart.length === 0 ? (
+      <p className="text-gray-500 text-center py-6">Your cart is empty.</p>
+    ) : (
+      <div className="space-y-4">
+        {cart.map((item) => (
+          <div
+            key={item.id}
+            className="flex justify-between items-center border-b pb-2"
+          >
+            <div>
+              <p className="font-medium">{item.name}</p>
+              <p className="text-sm text-gray-500">${item.price}</p>
+            </div>
+
+            <div className="flex items-center space-x-2">
+              {/* Quantity controls */}
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => decreaseQuantity(item.id)}
+              >
+                <Minus className="w-4 h-4" />
+              </Button>
+              <span className="w-6 text-center">{item.quantity}</span>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => increaseQuantity(item.id)}
+              >
+                <Plus className="w-4 h-4" />
+              </Button>
+
+              {/* Remove button */}
+              <Button
+                variant="destructive"
+                size="icon"
+                onClick={() => removeFromCart(item.id)}
+              >
+                <Trash2 className="w-4 h-4" />
+              </Button>
+            </div>
+
+            <span className="font-semibold">
+              ${(item.price * item.quantity).toFixed(2)}
+            </span>
+          </div>
+        ))}
+
+        <div className="pt-4 border-t flex justify-between font-bold">
+          <span>Total:</span>
+          <span>
+            $
+            {cart.reduce(
+              (sum, item) => sum + item.price * item.quantity,
+              0
+            ).toFixed(2)}
+          </span>
+        </div>
+
+        <Button className="w-full bg-indigo-600 text-white mt-4">
+          Checkout
+        </Button>
+      </div>
+    )}
+  </DialogContent>
+</Dialog>
           </div>
 
           {/* Mobile menu button */}
           <div className="lg:hidden flex items-center space-x-2">
-            <Button variant="ghost" size="sm" className="text-gray-700">
-              <ShoppingCart className="w-4 h-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setIsOpen(!isOpen)}
-              className="text-gray-700 hover:text-indigo-600"
-            >
-              {isOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-            </Button>
+            <Dialog>
+  <DialogTrigger asChild>
+    <div className="relative">
+      <Button
+        variant="ghost"
+        size="sm"
+        className="text-gray-700 hover:text-indigo-600"
+      >
+        <ShoppingCart className="w-5 h-5" />
+      </Button>
+      {totalItems > 0 && (
+        <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
+          {totalItems}
+        </span>
+      )}
+    </div>
+  </DialogTrigger>
+
+  {/* Modal Content */}
+  <DialogContent className="sm:max-w-lg">
+    <DialogHeader>
+      <DialogTitle>Your Cart</DialogTitle>
+    </DialogHeader>
+
+    {cart.length === 0 ? (
+      <p className="text-gray-500 text-center py-6">Your cart is empty.</p>
+    ) : (
+      <div className="space-y-4">
+        {cart.map((item) => (
+          <div
+            key={item.id}
+            className="flex justify-between items-center border-b pb-2"
+          >
+            <div>
+              <p className="font-medium">{item.name}</p>
+              <p className="text-sm text-gray-500">${item.price}</p>
+            </div>
+
+            <div className="flex items-center space-x-2">
+              {/* Quantity controls */}
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => decreaseQuantity(item.id)}
+              >
+                <Minus className="w-4 h-4" />
+              </Button>
+              <span className="w-6 text-center">{item.quantity}</span>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => increaseQuantity(item.id)}
+              >
+                <Plus className="w-4 h-4" />
+              </Button>
+
+              {/* Remove button */}
+              <Button
+                variant="destructive"
+                size="icon"
+                onClick={() => removeFromCart(item.id)}
+              >
+                <Trash2 className="w-4 h-4" />
+              </Button>
+            </div>
+
+            <span className="font-semibold">
+              ${(item.price * item.quantity).toFixed(2)}
+            </span>
+          </div>
+        ))}
+
+        <div className="pt-4 border-t flex justify-between font-bold">
+          <span>Total:</span>
+          <span>
+            $
+            {cart.reduce(
+              (sum, item) => sum + item.price * item.quantity,
+              0
+            ).toFixed(2)}
+          </span>
+        </div>
+
+        <Button className="w-full bg-indigo-600 text-white mt-4">
+          Checkout
+        </Button>
+      </div>
+    )}
+  </DialogContent>
+</Dialog>
           </div>
         </div>
 

@@ -10,6 +10,8 @@ export default function Signup() {
     console.log(form);
     
     const data = await res.json();
+    if(res.status==201)
+        alert('Success')
     if (!res.ok) alert(data.error || 'Signup failed');
     else localStorage.setItem('token', data.token);
   };
