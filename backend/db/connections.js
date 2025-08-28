@@ -5,6 +5,7 @@ dotenv.config();
 let userConnection;
 let consultConnection;
 let labTestConnection;
+let blogConnection;
 
 // Initialize User DB
 export const initUserConnection = async () => {
@@ -46,4 +47,18 @@ export const initLabTestConnection = async () => {
     labTestConnection.on("connected", () => console.log("✅ Lab Test DB connected"));
   }
   return labTestConnection;
+};
+
+// Initialize Blog DB
+export const initBlogConnection = async () => {
+  if (!blogConnection) {
+    const uri = process.env.MONGO_URI;
+    if (!uri) throw new Error("MONGO_URI missing");
+    blogConnection = await mongoose.createConnection(uri, {
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
+    });
+    blogConnection.on("connected", () => console.log("✅ Blog DB connected"));
+  }
+  return blogConnection;
 };

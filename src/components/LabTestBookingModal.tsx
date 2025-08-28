@@ -20,7 +20,10 @@ const LabTestBookingModal = ({ test, isOpen, onClose }: LabTestBookingModalProps
     address: '',
     date: '',
     time: '',
-    instruction: ''
+    instruction: '',
+    labtest_id: test?.id || '',
+    labtest_name: test?.name || '',
+    venue: test?.labName || ''
   });
 
   const handleInputChange = (field: string, value: string) => {
@@ -30,21 +33,15 @@ const LabTestBookingModal = ({ test, isOpen, onClose }: LabTestBookingModalProps
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault(); // ✅ prevent page reload
 
-    const formData = new FormData(e.currentTarget);
-    const form = Object.fromEntries(formData.entries());
-
     const res = await fetch('http://localhost:3000/api/lab-booking', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(form),
+      body: JSON.stringify(formData),
     });
     const data = await res.json();
-    console.log(data);
     
-    if(res.status==201)
-        alert('Lab Test session is booked.');
     if (!res.ok)
-      alert(data.error || 'Something went error');
+      alert(data.error || 'Something went Wrong');
     else{
       localStorage.setItem('token', data.token);
       alert('Your session is booked.')
@@ -128,10 +125,9 @@ const LabTestBookingModal = ({ test, isOpen, onClose }: LabTestBookingModalProps
                     </ul>
                   </div>
 
-                  <Button 
+                  <Button
                     onClick={() => setStep(2)}
-                    className="w-full bg-gradient-to-r from-teal-500 to-cyan-600"
-                  >
+                    className="w-full bg-gradient-to-r from-teal-500 to-cyan-600">
                     Continue to Booking
                   </Button>
                 </div>
@@ -140,8 +136,7 @@ const LabTestBookingModal = ({ test, isOpen, onClose }: LabTestBookingModalProps
               {step === 2 && (
                 <div className="space-y-6">
                   <h2 className="text-xl font-semibold">Personal Information</h2>
-                  
-                  
+                                  
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium mb-2">
@@ -153,8 +148,7 @@ const LabTestBookingModal = ({ test, isOpen, onClose }: LabTestBookingModalProps
                         value={formData.name}
                         onChange={(e) => handleInputChange('name', e.target.value)}
                         name='name'
-                        required
-                      />
+                        required />
                     </div>
                     <div>
                       <label className="block text-sm font-medium mb-2">
@@ -166,8 +160,7 @@ const LabTestBookingModal = ({ test, isOpen, onClose }: LabTestBookingModalProps
                         value={formData.phone}
                         onChange={(e) => handleInputChange('phone', e.target.value)}
                         name='phone'
-                        required
-                      />
+                        required />
                     </div>
                     <div className="md:col-span-2">
                       <label className="block text-sm font-medium mb-2">
@@ -180,7 +173,7 @@ const LabTestBookingModal = ({ test, isOpen, onClose }: LabTestBookingModalProps
                         value={formData.email}
                         onChange={(e) => handleInputChange('email', e.target.value)}
                         name='email'
-                      />
+                        required />
                     </div>
                     <div className="md:col-span-2">
                       <label className="block text-sm font-medium mb-2">
@@ -200,10 +193,9 @@ const LabTestBookingModal = ({ test, isOpen, onClose }: LabTestBookingModalProps
                     <Button variant="outline" onClick={() => setStep(1)}>
                       Back
                     </Button>
-                    <Button 
+                    <Button
                       onClick={() => setStep(3)}
-                      className="flex-1 bg-gradient-to-r from-teal-500 to-cyan-600"
-                    >
+                      className="flex-1 bg-gradient-to-r from-teal-500 to-cyan-600">
                       Continue
                     </Button>
                   </div>
@@ -232,12 +224,11 @@ const LabTestBookingModal = ({ test, isOpen, onClose }: LabTestBookingModalProps
                         <Clock className="w-4 h-4 inline mr-1" />
                         Preferred Time
                       </label>
-                      <select 
+                      <select
                         className="w-full p-2 border rounded-lg"
                         value={formData.time}
                         onChange={(e) => handleInputChange('time', e.target.value)}
-                        name='time'
-                      >
+                        name='time'>
                         <option value="">Select time</option>
                         <option value="morning">Morning (9 AM - 12 PM)</option>
                         <option value="afternoon">Afternoon (12 PM - 4 PM)</option>

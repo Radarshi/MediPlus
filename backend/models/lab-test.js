@@ -14,7 +14,7 @@ const LabBookingSchema = new mongoose.Schema({
         required: true
     },
     phone: {
-        type: Number,
+        type: String,
         required: true
     },
     email: {
@@ -33,10 +33,18 @@ const LabBookingSchema = new mongoose.Schema({
     },
     instruction: {
         type: String
+    },
+    labtest_id: {
+        type: String
+    },
+    labtest_name: {
+        type: String
+    },
+    venue: {
+        type: String
     }
 },
 {timestamps:true})
 
-const labTestSchema = labTestConnection.model("Lab Booking",LabBookingSchema);
-
-export default labTestSchema ;
+const LabTestSchema = labTestConnection.model("LabTestSchema",LabBookingSchema);
+export default LabTestSchema ;

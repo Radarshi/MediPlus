@@ -1,7 +1,6 @@
 import mongoose from "mongoose";
 import { initConsultConnection } from "../db/connections.js";
 
-
 const consultSchema = new mongoose.Schema({
       userId: {
         type: String,
@@ -12,12 +11,18 @@ const consultSchema = new mongoose.Schema({
         type : String,
         required : true
     },
+    doctor_name: {
+        type: String
+    },
+    doctor_id: {
+        type: String
+    },
     age: {
         type: Number,
         required : true
     },
     phone: {
-        type: Number,
+        type: String,
         required: true
     },
     email: {

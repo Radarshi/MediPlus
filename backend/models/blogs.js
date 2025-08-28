@@ -1,10 +1,11 @@
 import mongoose from "mongoose";
-import { initUserConnection } from "../db/connections.js";
+import { initBlogConnection } from "../db/connections.js";
 
 const blogSchema = new mongoose.Schema({
-  id: {
-    type: Number,
-    unique: true
+  userId: {
+    type: String,
+    ref: "User",
+    required: true
   },
   featured:{
     type: Boolean,
@@ -19,6 +20,10 @@ const blogSchema = new mongoose.Schema({
     type: String,
     required: true,
     trim: true
+  },
+  email: {
+    type: String,
+    required: true
   },
   excerpt:{
     type: String,
@@ -46,29 +51,7 @@ const blogSchema = new mongoose.Schema({
 },
 {timeStamps:true});
 
-const counterSchema = new mongoose.Schema({
-  _id: { type: String },
-  seq: { type: Number, default: 0 }
-});
-
 export async function getBlogModel() {
-  const connection = await initUserConnection();
-
-  // Use connection-bound Counter
-  const Counter = connection.model("Counter", counterSchema);
-
-  // Pre-save hook with connection-bound Counter
-  blogSchema.pre("save", async function (next) {
-    if (this.isNew) {
-      const counter = await Counter.findByIdAndUpdate(
-        { _id: "blogId" },
-        { $inc: { seq: 1 } },
-        { new: true, upsert: true }
-      );
-      this.id = counter.seq;
-    }
-    next();
-  });
-
+  const connection = await initBlogConnection();
   return connection.model("Blog", blogSchema);
 }

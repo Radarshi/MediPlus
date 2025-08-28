@@ -9,7 +9,8 @@ const Login = () => {
       body: JSON.stringify(form),
     });
     const data = await res.json();
-    if (!res.ok) alert(data.error || 'Login failed');
+    if (res.ok) alert('Login Success');
+
     else {localStorage.setItem('token', data.token);
       console.log(data.token);
     };

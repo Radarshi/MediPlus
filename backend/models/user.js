@@ -53,7 +53,7 @@ UserSchema.pre("save", async function (next) {
   next();
 });
 
-const userSchema = userConnection.model('userSchema', UserSchema);
+const User = userConnection.model('User', UserSchema);
 
-export { userSchema };
+export default User ;
 

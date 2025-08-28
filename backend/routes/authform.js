@@ -1,6 +1,6 @@
 import express from 'express';
 import generateToken from '../generatetoken.js';
-import { userSchema as User } from '../models/user.js';
+import User from '../models/user.js';
 
 const router = express.Router();
 

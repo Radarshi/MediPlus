@@ -6,9 +6,12 @@ import { supabase } from '../lib/supabaseClient';
 
 const ConsultationBookingForm = () => {
     const [selectedDoctor, setSelectedDoctor] = useState(null);
-    const[doctors,setDoctors] = useState([]);
+    const[doctors,setDoctors] = useState<any[]>([]);
+    const[selectedSpecialization,setSelectedSpecialization] = useState(null);
+    const [selectedDoctorId, setSelectedDoctorId] = useState("");
 
-      useEffect(()=>{
+
+  useEffect(()=>{
     const fetchData = async ()=>{
       const {data: doctors, error: docError} = await supabase
       .from('consult')
@@ -20,28 +23,34 @@ const ConsultationBookingForm = () => {
         setDoctors(doctors);
     }
     fetchData();
-
   },[])
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault(); // ✅ prevent page reload
+    e.preventDefault();
 
     const formData = new FormData(e.currentTarget);
     const form = Object.fromEntries(formData.entries());
 
+    if (selectedDoctor) {
+    form.doctor_id = selectedDoctor.id;
+    form.doctor_name = selectedDoctor.name;
+  } else
+      await alert("Please select a doctor.");
+    
     const res = await fetch('http://localhost:3000/api/consulting', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(form),
     });
     const data = await res.json();
-    if (!res.ok) 
-      alert(data.error || 'Something went error');
+    if (!res.ok)
+      alert(data.error || 'Something went Wrong');
     else{
       localStorage.setItem('token', data.token);
       alert('Your session is booked.')
     }
   };
+  
 
     return(
          <div>
@@ -68,11 +77,59 @@ const ConsultationBookingForm = () => {
                     <label className="block text-sm font-medium mb-2">Full Name</label>
                     <Input placeholder="Enter your full name" required name='name'/>
                   </div>
+                  <div></div>
                   <div>
                     <label className="block text-sm font-medium mb-2">Age</label>
                     <Input placeholder="Your age" type="number" required name='age'/>
                   </div>
                 </div>
+
+             {/* Specialization Filter */}
+              <div>
+               <label className="block text-sm font-medium mb-2">Select Specialization</label>
+                <select
+                  className="w-full p-2 border rounded-lg"
+                  value={selectedSpecialization}
+                  onChange={(e) => setSelectedSpecialization(e.target.value)}>
+
+                <option value="">-- All Specializations --</option>
+                {[...new Set(doctors.flatMap((doc) => doc.specializations || []))].map((spec) => (
+                  <option key={spec} value={spec}>{spec}</option>
+                ))}
+                </select>
+              </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-2">Select Doctor</label>
+              <select
+              className="w-full p-2 border rounded-lg"
+              name="doctor_id"
+              value={selectedDoctor?.id || ""}
+              onChange={(e) => {
+              const doc = doctors.find((d) => String(d.id) === e.target.value);
+              setSelectedDoctor(doc || null); }}
+              required >
+
+          <option value="">-- Choose a Doctor --</option>
+          {doctors
+          .filter((doc) =>
+          selectedSpecialization
+          ? doc.specializations?.includes(selectedSpecialization)
+          : true
+          )
+          .map((doc) => (
+          <option key={doc.id} value={doc.id}>
+            {doc.name} ({doc.specializations?.[0]})
+          </option>
+         ))}
+          </select>
+          </div>
+
+            {selectedDoctor && (
+              <>
+              <input type="hidden" name="doctor_name" value={selectedDoctor.name}/>
+              <input type="hidden" name="doctor_id" value={selectedDoctor.id}/>
+              </> )}
 
                 <div>
                   <label className="block text-sm font-medium mb-2">Phone Number</label>
@@ -94,6 +151,7 @@ const ConsultationBookingForm = () => {
                     <label className="block text-sm font-medium mb-2">Preferred Date</label>
                     <Input type="date" name='preferred_date'/>
                   </div>
+
                   <div>
                     <label className="block text-sm font-medium mb-2">Preferred Time</label>
                     <select className="w-full p-2 border rounded-lg" name='preferred_time'>
@@ -109,24 +167,9 @@ const ConsultationBookingForm = () => {
                   </div>
                 </div>
 
-                  <button className="w-full bg-gradient-to-r from-indigo-500 to-purple-600 text-lg py-3" 
-                  type="submit">Book Consultation {selectedDoctor?.videoPrice}</button>
-              
+                  <button className="w-full bg-gradient-to-r from-indigo-500 to-purple-600 text-lg py-3"
+                  type="submit">Book Consultation</button>
                 </form>
-                {/* <div className="flex items-center justify-center gap-6 text-sm text-gray-600 pt-4 border-t">
-                  <div className="flex items-center">
-                    <Shield className="w-4 h-4 mr-1" />
-                    HIPAA Compliant
-                  </div>
-                  <div className="flex items-center">
-                    <Clock className="w-4 h-4 mr-1" />
-                    24/7 Support
-                  </div>
-                  <div className="flex items-center">
-                    <Award className="w-4 h-4 mr-1" />
-                    Board Certified
-                  </div>
-                </div> */}
               </CardContent>
             </Card>
           </div>

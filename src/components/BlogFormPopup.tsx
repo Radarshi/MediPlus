@@ -2,26 +2,25 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Calendar, Pen, Pencil, User, X } from 'lucide-react';
+import { Calendar, Mail, Pen, Pencil, User, X } from 'lucide-react';
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-interface blogFormProps {
+interface BlogFormProps {
   isOpen: boolean;
   blogTitle: string;
 }
 
-const blogForm: React.FC<blogFormProps> = ({
-  isOpen,
-  blogTitle
-}) => {
+const BlogForm: React.FC<BlogFormProps> = ({ isOpen }) => {
   const [formData, setFormData] = useState({
     author: '',
     title: '',
-    category:'',
+    email: '',
+    category: '',
     content: ''
   });
 
+  const navigate = useNavigate();
   if (!isOpen) return null;
 
  const handleSubmit = async (e: React.FormEvent) => {
@@ -29,38 +28,28 @@ const blogForm: React.FC<blogFormProps> = ({
   try {
     const response = await fetch('http://localhost:3000/api/blogs', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        ...formData,
-        blogTitle
-       }),
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(formData),
     });
 
-    if (!response.ok) {
+    if (!response.ok)
       throw new Error('Failed to submit enrollment');
-    }
-
+    
     const data = await response.json();
     console.log('Server response:', data);
-    alert('Enrollment submitted successfully!');
+    alert('Blog was submitted successfully!');
+    navigate('/health-blog')
   } catch (error) {
-    console.error(error);
-    alert('There was an error submitting the form.');
+    console.error("Submitting blog form error",error);
+    alert('There was an error submitting the blog.');
   }
 };
 
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
   setFormData(prev => ({
     ...prev,
-    [e.target.name]: e.target.value
-  }));
+    [e.target.name]: e.target.value }));
 };
-
-  const navigate = useNavigate();
-
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
@@ -111,22 +100,37 @@ const blogForm: React.FC<blogFormProps> = ({
               />
             </div>
 
+            <div className="space-y-2">
+              <Label htmlFor="email" className="flex items-center gap-2">
+                <Mail size={16} />
+                Email
+              </Label>
+              <Input
+                id="email"
+                name="email"
+                value={formData.email}
+                onChange={handleChange}
+                placeholder="Enter your mail"
+                required
+              />
+            </div>
+
             {/* Content */}
             <div className="space-y-2">
               <Label htmlFor="content" className="flex items-center gap-2">
                 <Pencil size={16} />
                 Content
               </Label>
-              <Input
+              <textarea
                 id="content"
                 name="content"
                 value={formData.content}
                 onChange={handleChange}
-                className='h-24'
+                className="w-max p-2 border rounded min-h-[120px]"
+                placeholder='Enter your content here'
                 required
               />
             </div>
-
 
             <div className="space-y-2">
               <Label htmlFor="category" className="flex items-center gap-2">
@@ -167,4 +171,4 @@ const blogForm: React.FC<blogFormProps> = ({
   );
 };
 
-export default blogForm;
+export default BlogForm;
