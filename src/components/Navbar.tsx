@@ -1,14 +1,7 @@
 import { useCart } from "@/components/cartcontext.tsx";
 import { Button } from '@/components/ui/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
 import { AnimatePresence, motion } from 'framer-motion';
-import { Minus, Plus, ShoppingCart, Trash2 } from 'lucide-react';
+import { ShoppingCart } from 'lucide-react';
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import Logo from '../assests/med_logo.png';
@@ -16,7 +9,7 @@ import Logo from '../assests/med_logo.png';
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [authDialogOpen, setAuthDialogOpen] = useState(false);
-  const { cart, increaseQuantity, decreaseQuantity, removeFromCart } = useCart();
+  const { cart } = useCart();
   const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
   const navigate = useNavigate();
 
@@ -69,71 +62,22 @@ const Navbar = () => {
 
           {/* Desktop Action Buttons */}
           <div className="hidden lg:flex items-center space-x-4">
-            {/* Cart */}
-            <Dialog>
-              <DialogTrigger asChild>
-                <div className="relative">
-                  <Button variant="ghost" size="sm" className="text-gray-700 hover:text-indigo-600">
-                    <ShoppingCart className="w-5 h-5" />
-                  </Button>
-                  {totalItems > 0 && (
-                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
-                      {totalItems}
-                    </span>
-                  )}
-                </div>
-              </DialogTrigger>
+            {/* Cart - Navigate to Cart Page */}
+            <button
+              onClick={() => navigate('/cart')}
+              className="relative"
+            >
+              <Button variant="ghost" size="sm" className="text-gray-700 hover:text-indigo-600">
+                <ShoppingCart className="w-5 h-5" />
+              </Button>
+              {totalItems > 0 && (
+                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
+                  {totalItems}
+                </span>
+              )}
+            </button>
 
-              {/* Cart Modal */}
-              <DialogContent className="sm:max-w-lg">
-                <DialogHeader>
-                  <DialogTitle>Your Cart</DialogTitle>
-                </DialogHeader>
-
-                {cart.length === 0 ? (
-                  <p className="text-gray-500 text-center py-6">Your cart is empty.</p>
-                ) : (
-                  <div className="space-y-4">
-                    {cart.map((item) => (
-                      <div key={item.id} className="flex justify-between items-center border-b pb-2">
-                        <div>
-                          <p className="font-medium">{item.name}</p>
-                          <p className="text-sm text-gray-500">${item.price}</p>
-                        </div>
-
-                        <div className="flex items-center space-x-2">
-                          <Button variant="outline" size="icon" onClick={() => decreaseQuantity(item.id)}>
-                            <Minus className="w-4 h-4" />
-                          </Button>
-                          <span className="w-6 text-center">{item.quantity}</span>
-                          <Button variant="outline" size="icon" onClick={() => increaseQuantity(item.id)}>
-                            <Plus className="w-4 h-4" />
-                          </Button>
-                          <Button variant="destructive" size="icon" onClick={() => removeFromCart(item.id)}>
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </div>
-
-                        <span className="font-semibold">
-                          ${(item.price * item.quantity).toFixed(2)}
-                        </span>
-                      </div>
-                    ))}
-
-                    <div className="pt-4 border-t flex justify-between font-bold">
-                      <span>Total:</span>
-                      <span>
-                        ${cart.reduce((sum, item) => sum + item.price * item.quantity, 0).toFixed(2)}
-                      </span>
-                    </div>
-
-                    <Button className="w-full bg-indigo-600 text-white mt-4">Checkout</Button>
-                  </div>
-                )}
-              </DialogContent>
-            </Dialog>
-
-            {/* Signup/Login Button with Dialog */}
+            {/* Signup/Login Button */}
             <Button
               className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl shadow-md"
               onClick={() => setAuthDialogOpen(true)}
@@ -144,68 +88,20 @@ const Navbar = () => {
 
           {/* Mobile menu button */}
           <div className="lg:hidden flex items-center space-x-2">
-            {/* Cart */}
-            <Dialog>
-              <DialogTrigger asChild>
-                <div className="relative">
-                  <Button variant="ghost" size="sm" className="text-gray-700 hover:text-indigo-600">
-                    <ShoppingCart className="w-5 h-5" />
-                  </Button>
-                  {totalItems > 0 && (
-                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
-                      {totalItems}
-                    </span>
-                  )}
-                </div>
-              </DialogTrigger>
-
-              <DialogContent className="sm:max-w-lg">
-                <DialogHeader>
-                  <DialogTitle>Your Cart</DialogTitle>
-                </DialogHeader>
-
-                {cart.length === 0 ? (
-                  <p className="text-gray-500 text-center py-6">Your cart is empty.</p>
-                ) : (
-                  <div className="space-y-4">
-                    {cart.map((item) => (
-                      <div key={item.id} className="flex justify-between items-center border-b pb-2">
-                        <div>
-                          <p className="font-medium">{item.name}</p>
-                          <p className="text-sm text-gray-500">${item.price}</p>
-                        </div>
-
-                        <div className="flex items-center space-x-2">
-                          <Button variant="outline" size="icon" onClick={() => decreaseQuantity(item.id)}>
-                            <Minus className="w-4 h-4" />
-                          </Button>
-                          <span className="w-6 text-center">{item.quantity}</span>
-                          <Button variant="outline" size="icon" onClick={() => increaseQuantity(item.id)}>
-                            <Plus className="w-4 h-4" />
-                          </Button>
-                          <Button variant="destructive" size="icon" onClick={() => removeFromCart(item.id)}>
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </div>
-
-                        <span className="font-semibold">
-                          ${(item.price * item.quantity).toFixed(2)}
-                        </span>
-                      </div>
-                    ))}
-
-                    <div className="pt-4 border-t flex justify-between font-bold">
-                      <span>Total:</span>
-                      <span>
-                        ${cart.reduce((sum, item) => sum + item.price * item.quantity, 0).toFixed(2)}
-                      </span>
-                    </div>
-
-                    <Button className="w-full bg-indigo-600 text-white mt-4">Checkout</Button>
-                  </div>
-                )}
-              </DialogContent>
-            </Dialog>
+            {/* Cart - Navigate to Cart Page */}
+            <button
+              onClick={() => navigate('/cart')}
+              className="relative"
+            >
+              <Button variant="ghost" size="sm" className="text-gray-700 hover:text-indigo-600">
+                <ShoppingCart className="w-5 h-5" />
+              </Button>
+              {totalItems > 0 && (
+                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
+                  {totalItems}
+                </span>
+              )}
+            </button>
 
             {/* Signup/Login Button */}
             <Button

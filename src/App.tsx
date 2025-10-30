@@ -17,6 +17,8 @@ import Login from './pages/Login';
 import NotFound from "./pages/NotFound";
 import Signup from './pages/Signup';
 import StorePage from "./pages/StorePage";
+import CartPage from "./pages/CartPage.tsx";
+import CheckoutPage from "./pages/CheckoutPage";
 
 const queryClient = new QueryClient();
 
@@ -51,6 +53,8 @@ const App = () => {
                   <Route path="/store" element={<StorePage />} />
                   <Route path="/post" element={<PostBlog isOpen={true} blogTitle={""}/>}></Route>
                   <Route path="/consult" element={<ConsultPage />} />
+                  <Route path="/cart" element={<CartPage />} />
+                  <Route path="/checkout" element={<CheckoutPage />} />
                   <Route path="/lab-tests" element={<LabTestPage />} />
                   <Route path="/health-blog" element={<HealthBlogPage />} />
                   <Route path="*" element={<NotFound />} />
