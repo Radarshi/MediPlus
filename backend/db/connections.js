@@ -6,6 +6,7 @@ let userConnection;
 let consultConnection;
 let labTestConnection;
 let blogConnection;
+let orderConnection;
 
 // Initialize User DB
 export const initUserConnection = async () => {
@@ -61,4 +62,18 @@ export const initBlogConnection = async () => {
     blogConnection.on("connected", () => console.log("✅ Blog DB connected"));
   }
   return blogConnection;
+};
+
+// Initialize Order DB
+export const initOrderConnection = async () => {
+  if (!orderConnection) {
+    const uri = process.env.MONGO_ORDER_URI || process.env.MONGO_URI;
+    if (!uri) throw new Error("MONGO_ORDER_URI missing");
+    orderConnection = await mongoose.createConnection(uri, {
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
+    });
+    orderConnection.on("connected", () => console.log("✅ Order DB connected"));
+  }
+  return orderConnection;
 };
