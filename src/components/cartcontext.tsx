@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
+// TypeScript interface: Defines the structure of a single cart item
 interface CartItem {
   id: number | string;
   name: string;
@@ -15,6 +16,7 @@ interface CartItem {
   originalPrice?: number;
 }
 
+// TypeScript interface: Defines what functions the cart context provides, this is the "contract" - what components can do with the cart
 interface CartContextType {
   cart: CartItem[];
   addToCart: (item: Omit<CartItem, 'quantity'>) => void;
@@ -25,14 +27,18 @@ interface CartContextType {
   getCartTotal: () => number;
 }
 
+//This is like a "box" that will hold cart data, initially undefined, will be filled by CartProvider
+
 const CartContext = createContext<CartContextType | undefined>(undefined);
+
+//component that wraps your app and provides cart functionality; children' = all components inside this provider can access cart
 
 export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   // Initialize cart from localStorage or empty array
   const [cart, setCart] = useState<CartItem[]>(() => {
     try {
       const savedCart = localStorage.getItem('mediplus-cart');
-      return savedCart ? JSON.parse(savedCart) : [];
+      return savedCart ? JSON.parse(savedCart) : [];           // Save: Cart → JSON string → localStorage
     } catch (error) {
       console.error('Error loading cart from localStorage:', error);
       return [];
@@ -49,20 +55,20 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [cart]);
 
   // Add item to cart
-  const addToCart = (item: Omit<CartItem, 'quantity'>) => {
+  const addToCart = (item: Omit<CartItem, 'quantity'>) => {         // 'Omit<CartItem, 'quantity'>' means item has all CartItem properties EXCEPT quantity
     setCart((prevCart) => {
       const existingItem = prevCart.find((cartItem) => cartItem.id === item.id);
       
       if (existingItem) {
-        // If item exists, increase quantity
+        // If item exists, increase quantity by 1 
         return prevCart.map((cartItem) =>
           cartItem.id === item.id
             ? { ...cartItem, quantity: cartItem.quantity + 1 }
             : cartItem
         );
       } else {
-        // If item doesn't exist, add it with quantity 1
-        return [...prevCart, { ...item, quantity: 1 }];
+        // If item doesn't exist, add new item with quantity 1
+        return [...prevCart, { ...item, quantity: 1 }];      // Spread operator creates new array with all old items + new item
       }
     });
   };
@@ -72,9 +78,9 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setCart((prevCart) => prevCart.filter((item) => item.id !== id));
   };
 
-  // Increase quantity
+  // Increase quantity...Map through cart and update matching item's quantity
   const increaseQuantity = (id: number | string) => {
-    setCart((prevCart) =>
+    setCart((prevCart) =>                           
       prevCart.map((item) =>
         item.id === id ? { ...item, quantity: item.quantity + 1 } : item
       )
@@ -94,14 +100,15 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Clear entire cart
   const clearCart = () => {
-    setCart([]);
+    setCart([]);         // Set cart to empty array
   };
 
   // Get cart total
   const getCartTotal = () => {
     return cart.reduce((total, item) => total + item.price * item.quantity, 0);
   };
-
+  
+  // Render: Provide all cart data and functions to child components
   return (
     <CartContext.Provider
       value={{
@@ -127,3 +134,22 @@ export const useCart = () => {
   }
   return context;
 };
+
+
+
+
+
+
+
+
+
+
+
+//User clicks "Add to Cart" button
+//Component calls: addToCart(product)
+//cartcontext checks if item exists
+//If exists: Increase quantity
+//If not: Add with quantity = 1
+//Update cart state
+//useEffect triggers → Save to localStorage
+//All components using useCart() see updated cart

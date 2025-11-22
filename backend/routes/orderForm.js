@@ -1,261 +1,297 @@
-import dotenv from 'dotenv';
 import express from 'express';
-import nodemailer from 'nodemailer';
-import validator from 'validator';
+import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
 import generateToken from '../generatetoken.js';
-import { getOrderModel } from '../models/order.js';
-import OrderCounter from '../models/orderCounter.js';
 import User from '../models/user.js';
-dotenv.config();
 
 const router = express.Router();
 
-// Place Order
-router.post('/', async (req, res) => {
+// Password validation function
+const validatePassword = (password) => {
+  const hasUpperCase = /[A-Z]/.test(password);
+  const hasLowerCase = /[a-z]/.test(password);
+  const hasNumber = /[0-9]/.test(password);
+  const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(password);
+  const isLongEnough = password.length >= 8;
+
+  return hasUpperCase && hasLowerCase && hasNumber && hasSpecialChar && isLongEnough;
+};
+
+// POST /api/signup
+router.post('/api/signup', async (req, res) => {
   try {
-    const {
-      email,
-      deliveryInfo,
-      items,
-      paymentMethod,
-      subtotal,
-      discount,
-      deliveryCharge,
-      total
-    } = req.body;
+    const { name, age, gender, email, phone, password } = req.body;
 
-    // Validate email
-    if (!validator.isEmail(email)) {
-      return res.status(400).json({ error: "Invalid email address" });
+    if (!name || !age || !gender || !email || !phone || !password) {
+      return res.status(400).json({ error: 'All fields are required' });
     }
 
-    // Check if user exists
-    const user = await User.findOne({ email: email.toLowerCase() });
-    if (!user) {
-      return res.status(401).json({ error: 'Please login to place an order' });
+    if (!validatePassword(password)) {
+      return res.status(400).json({
+        error: 'Password must include uppercase, lowercase, number, special character and be 8+ chars long'
+      });
     }
 
-    // Validate required fields
-    if (!deliveryInfo || !items || items.length === 0) {
-      return res.status(400).json({ error: 'Missing required order information' });
-    }
+    const exists = await User.findOne({ email });
+    if (exists) return res.status(400).json({ error: 'Email already registered' });
 
-    // Generate unique order ID
-    const counter = await OrderCounter.findByIdAndUpdate(
-      { _id: "orderId" },
-      { $inc: { seq: 1 } },
-      { new: true, upsert: true }
-    );
-    const orderId = "MD" + counter.seq.toString().padStart(6, "0");
+    const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Calculate estimated delivery (3 days from now)
-    const estimatedDelivery = new Date();
-    estimatedDelivery.setDate(estimatedDelivery.getDate() + 3);
-
-    // Create order
-    const Order = await getOrderModel();
-    const order = await Order.create({
-      orderId,
-      userId: user.userId,
-      deliveryInfo,
-      items,
-      paymentMethod,
-      paymentStatus: paymentMethod === 'cod' ? 'pending' : 'paid',
-      subtotal,
-      discount,
-      deliveryCharge,
-      total,
-      orderStatus: 'confirmed',
-      estimatedDelivery
+    const user = await User.create({
+      name, age, gender, email, phone, password: hashedPassword
     });
 
-    const token = generateToken(order._id);
+    const token = generateToken(user._id);
 
-    // Send confirmation email
-    const transporter = nodemailer.createTransport({
-      service: "gmail",
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS
+    res.status(201).json({
+      token,
+      user: { 
+        id: user._id, 
+        userId: user.userId, 
+        name: user.name, 
+        email: user.email,
+        age: user.age,
+        gender: user.gender,
+        phone: user.phone,
+        picture: user.picture || null
       }
     });
 
-    // Generate items HTML
-    const itemsHTML = items.map(item => `
-      <tr>
-        <td style="padding: 10px; border-bottom: 1px solid #eee;">
-          <strong>${item.name}</strong><br/>
-          <small style="color: #666;">${item.generic_name || ''}</small>
-        </td>
-        <td style="padding: 10px; border-bottom: 1px solid #eee; text-align: center;">
-          ${item.quantity}
-        </td>
-        <td style="padding: 10px; border-bottom: 1px solid #eee; text-align: right;">
-          $${(item.price * item.quantity).toFixed(2)}
-        </td>
-      </tr>
-    `).join('');
+  } catch (err) {
+    console.error('Signup error:', err);
+    res.status(500).json({ error: 'Server error during signup' });
+  }
+});
 
-    const mailOptions = {
-      from: `"MediPlus" <${process.env.EMAIL_USER}>`,
-      to: deliveryInfo.email,
-      subject: `Order Confirmation - ${orderId}`,
-      html: `
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <style>
-            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-            .header { background: linear-gradient(135deg, #3b82f6 0%, #10b981 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
-            .content { background: #f9fafb; padding: 30px; border-radius: 0 0 10px 10px; }
-            .order-id { background: white; padding: 15px; border-left: 4px solid #3b82f6; margin: 20px 0; }
-            .section { background: white; padding: 20px; margin: 20px 0; border-radius: 8px; }
-            .section-title { color: #3b82f6; font-size: 18px; margin-bottom: 15px; border-bottom: 2px solid #e5e7eb; padding-bottom: 10px; }
-            table { width: 100%; border-collapse: collapse; }
-            .total-row { font-weight: bold; background: #f3f4f6; }
-            .button { background: linear-gradient(135deg, #3b82f6 0%, #10b981 100%); color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; display: inline-block; margin: 20px 0; }
-            .footer { text-align: center; color: #6b7280; padding: 20px; font-size: 14px; }
-          </style>
-        </head>
-        <body>
-          <div class="container">
-            <div class="header">
-              <h1>🎉 Order Confirmed!</h1>
-              <p>Thank you for your order</p>
-            </div>
-            
-            <div class="content">
-              <div class="order-id">
-                <p style="margin: 0; color: #6b7280; font-size: 14px;">Order ID</p>
-                <h2 style="margin: 5px 0; color: #3b82f6;">${orderId}</h2>
-              </div>
+// POST /auth/login
+router.post('/auth/login', async (req, res) => {
+  try {
+    const { email, password } = req.body;
 
-              <p>Hello <strong>${deliveryInfo.fullName}</strong>,</p>
-              <p>Your order has been successfully placed and confirmed! We'll start processing it right away.</p>
+    if (!email || !password)
+      return res.status(400).json({ error: 'Email and password are required' });
 
-              <div class="section">
-                <h3 class="section-title">📦 Order Items</h3>
-                <table>
-                  <thead>
-                    <tr style="background: #f3f4f6;">
-                      <th style="padding: 10px; text-align: left;">Item</th>
-                      <th style="padding: 10px; text-align: center;">Qty</th>
-                      <th style="padding: 10px; text-align: right;">Price</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    ${itemsHTML}
-                    <tr>
-                      <td colspan="2" style="padding: 10px; text-align: right;"><strong>Subtotal:</strong></td>
-                      <td style="padding: 10px; text-align: right;">$${subtotal.toFixed(2)}</td>
-                    </tr>
-                    ${discount > 0 ? `
-                    <tr>
-                      <td colspan="2" style="padding: 10px; text-align: right; color: #10b981;"><strong>Discount:</strong></td>
-                      <td style="padding: 10px; text-align: right; color: #10b981;">-$${discount.toFixed(2)}</td>
-                    </tr>
-                    ` : ''}
-                    <tr>
-                      <td colspan="2" style="padding: 10px; text-align: right;"><strong>Delivery Charge:</strong></td>
-                      <td style="padding: 10px; text-align: right;">${deliveryCharge === 0 ? '<span style="color: #10b981;">FREE</span>' : '$' + deliveryCharge.toFixed(2)}</td>
-                    </tr>
-                    <tr class="total-row">
-                      <td colspan="2" style="padding: 15px; text-align: right; font-size: 18px;">Total:</td>
-                      <td style="padding: 15px; text-align: right; font-size: 18px; color: #10b981;">$${total.toFixed(2)}</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
+    const user = await User.findOne({ email });
+    if (!user) return res.status(400).json({ error: 'Invalid credentials' });
 
-              <div class="section">
-                <h3 class="section-title">🚚 Delivery Address</h3>
-                <p style="margin: 5px 0;"><strong>${deliveryInfo.fullName}</strong></p>
-                <p style="margin: 5px 0;">${deliveryInfo.address}</p>
-                <p style="margin: 5px 0;">${deliveryInfo.city}, ${deliveryInfo.state} ${deliveryInfo.zipCode}</p>
-                ${deliveryInfo.landmark ? `<p style="margin: 5px 0; color: #6b7280;">Landmark: ${deliveryInfo.landmark}</p>` : ''}
-                <p style="margin: 5px 0;">📞 ${deliveryInfo.phone}</p>
-              </div>
+    const valid = await bcrypt.compare(password, user.password);
+    if (!valid) return res.status(400).json({ error: 'Invalid credentials' });
 
-              <div class="section">
-                <h3 class="section-title">💳 Payment Method</h3>
-                <p><strong>${paymentMethod === 'card' ? 'Credit/Debit Card' : 'Cash on Delivery'}</strong></p>
-                <p style="color: #6b7280; font-size: 14px;">
-                  ${paymentMethod === 'cod' ? 'Please keep exact cash ready for delivery' : 'Payment received successfully'}
-                </p>
-              </div>
+    const token = generateToken(user._id);
 
-              <div style="background: #ecfdf5; border: 2px solid #10b981; padding: 15px; border-radius: 8px; text-align: center; margin: 20px 0;">
-                <p style="margin: 0; color: #10b981; font-size: 16px;">
-                  <strong>📅 Estimated Delivery: ${estimatedDelivery.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</strong>
-                </p>
-              </div>
-
-              <div style="text-align: center;">
-                <a href="${process.env.FRONTEND_URL || 'http://localhost:5173'}/orders" class="button">
-                  Track Your Order
-                </a>
-              </div>
-            </div>
-
-            <div class="footer">
-              <p>Thank you for choosing <strong>MediPlus</strong>!</p>
-              <p>If you have any questions, please contact us at support@mediplus.com</p>
-              <p style="color: #9ca3af; font-size: 12px;">This is an automated email, please do not reply.</p>
-            </div>
-          </div>
-        </body>
-        </html>
-      `
-    };
-
-    await transporter.sendMail(mailOptions);
-
-    res.status(201).json({
-      success: true,
-      message: "Order placed successfully! Confirmation email sent.",
-      orderId: orderId,
-      order: order
+    res.json({
+      token,
+      user: { 
+        id: user._id, 
+        userId: user.userId, 
+        name: user.name, 
+        email: user.email,
+        age: user.age,
+        gender: user.gender,
+        phone: user.phone,
+        picture: user.picture || null
+      }
     });
 
   } catch (err) {
-    console.error("Order placement failed:", err);
-    res.status(500).json({ error: 'Failed to place order. Please try again.' });
+    console.error('Login error:', err);
+    res.status(500).json({ error: 'Server error during login' });
   }
 });
 
-// Get user orders
-router.get('/user/:email', async (req, res) => {
+// -------------------- GOOGLE AUTH -------------------------
+
+// STEP 1: Redirect user to Google login page
+router.get('/auth/google', (req, res) => {
+  const googleAuthUrl =
+    `https://accounts.google.com/o/oauth2/v2/auth?` +
+    `client_id=${process.env.GOOGLE_CLIENT_ID}` +
+    `&redirect_uri=${process.env.GOOGLE_REDIRECT_URI}` +
+    `&response_type=code` +
+    `&scope=profile email`;
+
+  res.redirect(googleAuthUrl);
+});
+
+// STEP 2: Google redirects back to our backend - FIXED VERSION
+router.get('/auth/google/callback', async (req, res) => {
   try {
-    const user = await User.findOne({ email: req.params.email.toLowerCase() });
+    const { code } = req.query;
+
+    if (!code) return res.redirect('http://localhost:8080/login?error=no_code');
+
+    // Exchange code for tokens
+    const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
+      method: 'POST',
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        code,
+        client_id: process.env.GOOGLE_CLIENT_ID,
+        client_secret: process.env.GOOGLE_CLIENT_SECRET,
+        redirect_uri: process.env.GOOGLE_REDIRECT_URI,
+        grant_type: 'authorization_code'
+      })
+    });
+
+    const tokenData = await tokenResponse.json();
+
+    if (!tokenData.access_token)
+      return res.redirect('http://localhost:8080/login?error=token_failed');
+
+    // Fetch user profile
+    const userResponse = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+      headers: { Authorization: `Bearer ${tokenData.access_token}` }
+    });
+
+    const googleUser = await userResponse.json();
+
+    let user = await User.findOne({ email: googleUser.email });
+
     if (!user) {
+      user = await User.create({
+        name: googleUser.name,
+        email: googleUser.email,
+        googleId: googleUser.id,
+        picture: googleUser.picture,
+        age: 0,
+        gender: "other",
+        phone: "",
+        password: await bcrypt.hash(Math.random().toString(36), 10)
+      });
+    } else {
+      // Update picture if it's a Google user
+      if (!user.picture && googleUser.picture) {
+        user.picture = googleUser.picture;
+        await user.save();
+      }
+    }
+
+    const token = generateToken(user._id);
+    
+    // FIXED: Properly encode user data as JSON string
+    const userDataEncoded = encodeURIComponent(JSON.stringify({
+      id: user._id,
+      userId: user.userId,
+      name: user.name,
+      email: user.email,
+      age: user.age,
+      gender: user.gender,
+      phone: user.phone,
+      picture: user.picture
+    }));
+
+    // Redirect frontend with token and user data
+    return res.redirect(`http://localhost:8080/auth/success?token=${token}&user=${userDataEncoded}`);
+
+  } catch (err) {
+    console.error("Google OAuth error:", err);
+    return res.redirect('http://localhost:8080/login?error=oauth_failed');
+  }
+});
+
+// -------------------- UPDATE PROFILE -------------------------
+
+// PUT /api/update-profile - Update user profile
+router.put('/api/update-profile', async (req, res) => {
+  try {
+    console.log('Update profile request received:', req.body);
+    
+    // Get token from Authorization header
+    const auth = req.headers.authorization || '';
+    const token = auth.startsWith('Bearer ') ? auth.split(' ')[1] : null;
+
+    console.log('Token received:', token ? 'Yes' : 'No');
+
+    if (!token) {
+      return res.status(401).json({ error: 'No token provided' });
+    }
+
+    // Check if JWT_SECRET exists
+    if (!process.env.JWT_SECRET) {
+      console.error('JWT_SECRET is not defined in environment variables');
+      return res.status(500).json({ error: 'Server configuration error' });
+    }
+
+    // Verify JWT token
+    let decoded;
+    try {
+      decoded = jwt.verify(token, process.env.JWT_SECRET);
+      console.log('Token decoded successfully, userId:', decoded.id);
+    } catch (err) {
+      console.error('Token verification failed:', err.message);
+      return res.status(401).json({ error: 'Invalid or expired token' });
+    }
+
+    // Extract fields from request body
+    const { name, phone, age, gender } = req.body;
+    console.log('Update data:', { name, phone, age, gender });
+
+    // Validate phone if provided
+    if (phone && phone.trim() && !/^\d{10}$/.test(phone.trim())) {
+      return res.status(400).json({ error: 'Phone must be exactly 10 digits' });
+    }
+
+    // Validate age if provided
+    if (age !== undefined && age !== null && age !== '') {
+      const ageNum = parseInt(age);
+      if (isNaN(ageNum) || ageNum < 1 || ageNum > 120) {
+        return res.status(400).json({ error: 'Age must be between 1 and 120' });
+      }
+    }
+
+    // Validate gender
+    if (gender && !['male', 'female', 'other'].includes(gender.toLowerCase())) {
+      return res.status(400).json({ error: 'Gender must be male, female, or other' });
+    }
+
+    // Find user in database
+    const user = await User.findById(decoded.id);
+    if (!user) {
+      console.error('User not found for id:', decoded.id);
       return res.status(404).json({ error: 'User not found' });
     }
 
-    const Order = await getOrderModel();
-    const orders = await Order.find({ userId: user.userId }).sort({ createdAt: -1 });
-    
-    res.json(orders);
-  } catch (err) {
-    console.error("Error fetching orders:", err);
-    res.status(500).json({ error: 'Failed to fetch orders' });
-  }
-});
+    console.log('User found:', user.email);
 
-// Get specific order
-router.get('/:orderId', async (req, res) => {
-  try {
-    const Order = await getOrderModel();
-    const order = await Order.findOne({ orderId: req.params.orderId });
-    
-    if (!order) {
-      return res.status(404).json({ error: 'Order not found' });
+    // Update fields (only if provided)
+    if (name && name.trim()) {
+      user.name = name.trim();
     }
     
-    res.json(order);
+    if (phone !== undefined) {
+      user.phone = phone.trim();
+    }
+    
+    if (age !== undefined && age !== null && age !== '') {
+      user.age = parseInt(age) || 0;
+    }
+    
+    if (gender) {
+      user.gender = gender.toLowerCase();
+    }
+
+    // Save updated user
+    await user.save();
+    console.log('User updated successfully');
+
+    // Return updated user object
+    res.json({
+      message: 'Profile updated successfully',
+      user: {
+        id: user._id,
+        userId: user.userId,
+        name: user.name,
+        email: user.email,
+        age: user.age,
+        gender: user.gender,
+        phone: user.phone,
+        picture: user.picture || null
+      }
+    });
+
   } catch (err) {
-    console.error("Error fetching order:", err);
-    res.status(500).json({ error: 'Failed to fetch order' });
+    console.error('Update profile error:', err);
+    res.status(500).json({ error: 'Server error during profile update', details: err.message });
   }
 });
 

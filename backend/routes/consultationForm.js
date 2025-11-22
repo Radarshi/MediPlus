@@ -9,10 +9,12 @@ dotenv.config();
 
 const router = express.Router();
 
+// POST /api/consulting - Book consultation appointment
 router.post('/api/consulting', async (req, res) => {
   try {
     const { name, age, phone, email, symptoms, preferred_date, preferred_time, doctor_name, doctor_id} = req.body;
 
+    // Validate email format using validator library
     if (!validator.isEmail(email))
         return res.status(400).json({ error: "Invalid email address" });
 
@@ -22,7 +24,7 @@ router.post('/api/consulting', async (req, res) => {
       return res.status(400).json({ error: 'User not found' });
 
     const Consult = await getConsultModel();
-    const consult = await Consult.create({
+    const consult = await Consult.create({          // Create new consultation booking
       userId: user.userId,
       name,
       doctor_name,
@@ -37,6 +39,8 @@ router.post('/api/consulting', async (req, res) => {
       
     const token = generateToken(consult._id);
 
+
+    // Create email transporter using Gmail
     const transporter = nodemailer.createTransport({
       service: "gmail",
       auth: {
@@ -45,6 +49,7 @@ router.post('/api/consulting', async (req, res) => {
       }
     });
 
+    // Define email content
     const mailOptions = {
       from: `"MediPlus" <${process.env.EMAIL_USER}>`,
       to: email,
@@ -59,6 +64,7 @@ router.post('/api/consulting', async (req, res) => {
         <p>Thank you for choosing <b>MediPlus</b>!</p>`
     };
 
+    // Send email asynchronously
     await transporter.sendMail(mailOptions);
 
     res.status(201).json({ message: "Booking successful, confirmation email sent!" });

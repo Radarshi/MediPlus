@@ -32,6 +32,7 @@ const ConsultPage = () => {
     { id: 'psychiatry', name: 'Psychiatry', doctors: 5, icon: '🧠' }
   ];
 
+  // Effect: Fetch doctors from Supabase database on component mount
 
   useEffect(()=>{
     const fetchData = async ()=>{
@@ -73,7 +74,7 @@ const ConsultPage = () => {
       features: ['Clear Audio', 'Call Recording', 'Follow-up SMS', 'Emergency Support']
     }
   ];
-
+  //Filter doctors based on selected specialty
   const filteredDoctors = doctors.filter(doctor => 
     selectedSpecialty === 'all' || doctor.specialty.toLowerCase().includes(selectedSpecialty)
   );

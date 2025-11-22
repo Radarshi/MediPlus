@@ -10,12 +10,12 @@ import { Input } from '@/components/ui/input';
 import { useCart } from '@/components/cartcontext.tsx';
 
 const CartPage = () => {
-  const { cart, increaseQuantity, decreaseQuantity, removeFromCart } = useCart();
+  const { cart, increaseQuantity, decreaseQuantity, removeFromCart } = useCart();    // These are the functions we defined in cartcontext.tsx
   
   const [couponCode, setCouponCode] = useState('');
   const [appliedCoupon, setAppliedCoupon] = useState(null);
   const [showCouponInput, setShowCouponInput] = useState(false);
-  const [cartItems, setCartItems] = useState([]);
+  const [cartItems, setCartItems] = useState([]);     //Local copy of cart items (syncs with context cart)
 
   // Update local cart state when cart context changes
   useEffect(() => {
@@ -30,11 +30,12 @@ const CartPage = () => {
     { code: '25NUFIT', discount: 25, type: 'percentage', description: '25% off - Max savings unlocked', minOrder: 0 }
   ];
 
-  // Calculate totals from cart
+  // Calculate subtotals from cart
   const calculateSubtotal = () => {
     return cartItems.reduce((sum, item) => sum + (Number(item.price) * Number(item.quantity)), 0);
   };
 
+  //Calculate original total (before discounts on products)
   const calculateOriginalTotal = () => {
     return cartItems.reduce((sum, item) => {
       const originalPrice = item.originalPrice || item.original_price || item.price;
@@ -63,6 +64,7 @@ const CartPage = () => {
     return subtotal >= 50 ? 0 : 4.99;
   };
 
+  //Calculate final total (subtotal - coupon + delivery)
   const calculateTotal = () => {
     return calculateSubtotal() - calculateCouponDiscount() + calculateDeliveryCharge();
   };
@@ -104,6 +106,7 @@ const CartPage = () => {
     removeFromCart(id);
   };
 
+   // Conditional render: If cart is empty, show empty state
   if (cartItems.length === 0) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50 py-12">

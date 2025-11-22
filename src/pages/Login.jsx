@@ -1,24 +1,31 @@
-import AuthForm from '../components/Authform';
+// src/pages/Login.jsx
+import React from 'react';
+import AuthForm from '../components/AuthForm';
+import { useNavigate } from 'react-router-dom';
 
-const Login = () => {
+export default function Login() {
+  const navigate = useNavigate();
 
   const handleLogin = async (form) => {
-    const res = await fetch('http://localhost:3000/auth/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(form),
-    });
-    const data = await res.json();
-    if (res.ok) alert('Login Success');
-
-    else {localStorage.setItem('token', data.token);
-      console.log(data.token);
-    };
-    console.log("login successful");
-    
+    try {
+      const res = await fetch('http://localhost:3000/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: form.email, password: form.password }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.error || 'Login failed');
+        return;
+      }
+      localStorage.setItem('token', data.token);
+      localStorage.setItem('user', JSON.stringify(data.user));
+      navigate('/dashboard');
+    } catch (err) {
+      console.error(err);
+      alert('Login failed');
+    }
   };
 
   return <AuthForm type="login" onSubmit={handleLogin} />;
 }
-
-export default Login

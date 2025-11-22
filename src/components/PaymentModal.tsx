@@ -6,12 +6,20 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
+
+// TypeScript interface: Defines what props this component receives
 interface PaymentModalProps {
   isOpen: boolean;
   onClose: () => void;
-  plan: any;
+  plan: {
+    name: string;      
+    type: string;      
+    duration: string;  
+    price: number;     
+  };
 }
 
+// Main component: Modal with 4 steps (Contact → Payment → Processing → Success)
 const PaymentModal = ({ isOpen, onClose, plan }: PaymentModalProps) => {
   const [step, setStep] = useState(1);
   const [formData, setFormData] = useState({
@@ -25,6 +33,7 @@ const PaymentModal = ({ isOpen, onClose, plan }: PaymentModalProps) => {
     zipCode: ''
   });
 
+    // Function: Update a single field in formData object
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
@@ -33,10 +42,11 @@ const PaymentModal = ({ isOpen, onClose, plan }: PaymentModalProps) => {
     setStep(3);
     // Here you would integrate with actual payment processing
     setTimeout(() => {
-      setStep(4);
+      setStep(4);     //After 2 seconds, go to "Success" step
     }, 2000);
   };
 
+  // Function: Reset everything and close modal
   const handleClose = () => {
     setStep(1);
     setFormData({
@@ -54,6 +64,7 @@ const PaymentModal = ({ isOpen, onClose, plan }: PaymentModalProps) => {
 
   if (!plan) return null;
 
+    // Render: Modal with animations
   return (
     <AnimatePresence>
       {isOpen && (
@@ -147,7 +158,7 @@ const PaymentModal = ({ isOpen, onClose, plan }: PaymentModalProps) => {
                   <Button 
                     className="w-full bg-gradient-to-r from-indigo-500 to-purple-600 text-lg py-3"
                     onClick={() => setStep(2)}
-                    disabled={!formData.email}
+                    disabled={!formData.email}        // Button disabled if email empty
                   >
                     Continue to Payment
                   </Button>
@@ -296,11 +307,11 @@ const PaymentModal = ({ isOpen, onClose, plan }: PaymentModalProps) => {
                       <p>Plan: {plan.name} {plan.type} Consultation</p>
                       <p>Duration: {plan.duration}</p>
                       <p>Amount Paid: ${plan.price}</p>
-                      <p>Booking ID: #CS{Math.random().toString(36).substr(2, 9).toUpperCase()}</p>
-                    </div>
+                      <p>Booking ID: #CS{Math.random().toString(36).substr(2, 9).toUpperCase()}</p>         
+                    </div>   
                   </div>
                   <Button 
-                    className="w-full bg-gradient-to-r from-indigo-500 to-purple-600"
+                    className="w-full bg-gradient-to-r from-indigo-500 to-purple-600"      
                     onClick={handleClose}
                   >
                     Done

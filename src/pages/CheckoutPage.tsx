@@ -10,13 +10,13 @@ import { Input } from '@/components/ui/input';
 import { useCart } from '@/components/cartcontext.tsx';
 
 const CheckoutPage = () => {
-  const { cart, clearCart } = useCart();
+  const { cart, clearCart } = useCart();     // Get cart data and clearCart function from context
   const [currentStep, setCurrentStep] = useState(1);
   const [isProcessing, setIsProcessing] = useState(false);
   const [orderPlaced, setOrderPlaced] = useState(false);
   const [orderId, setOrderId] = useState('');
 
-  // Form states
+  // Form state, store delivery information form data
   const [deliveryInfo, setDeliveryInfo] = useState({
     fullName: '',
     email: '',
