@@ -12,6 +12,12 @@ const orderSchema = new mongoose.Schema({
     ref: "User",
     required: true
   },
+  // User Details (denormalized for easy access)
+  userDetails: {
+    name: String,
+    email: String,
+    phone: String
+  },
   // Delivery Information
   deliveryInfo: {
     fullName: { type: String, required: true },
@@ -32,7 +38,8 @@ const orderSchema = new mongoose.Schema({
     generic_name: String,
     manufacturer: String,
     dosage: String,
-    image_url: String
+    image_url: String,
+    prescription: Boolean
   }],
   // Payment Information
   paymentMethod: {
@@ -45,6 +52,15 @@ const orderSchema = new mongoose.Schema({
     enum: ['pending', 'paid', 'failed'],
     default: 'pending'
   },
+  // Prescription
+  prescriptionUrl: {
+    type: String,
+    default: null
+  },
+  requiresConsultation: {
+    type: Boolean,
+    default: false
+  },
   // Pricing
   subtotal: { type: Number, required: true },
   discount: { type: Number, default: 0 },
@@ -56,6 +72,12 @@ const orderSchema = new mongoose.Schema({
     enum: ['pending', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled'],
     default: 'pending'
   },
+  // Status History (track all status changes)
+  statusHistory: [{
+    status: String,
+    timestamp: { type: Date, default: Date.now },
+    note: String
+  }],
   // Timestamps
   orderDate: {
     type: Date,
@@ -63,8 +85,23 @@ const orderSchema = new mongoose.Schema({
   },
   estimatedDelivery: {
     type: Date
-  }
-}, { timestamps: true });
+  },
+  actualDeliveryDate: {
+    type: Date
+  },
+  // Notes
+  orderNotes: String,
+  cancelReason: String
+}, { 
+  timestamps: true  // Adds createdAt and updatedAt automatically
+});
+
+// Indexes for better query performance
+orderSchema.index({ userId: 1, orderDate: -1 });
+orderSchema.index({ orderId: 1 });
+orderSchema.index({ orderStatus: 1 });
+orderSchema.index({ orderDate: -1 });
+orderSchema.index({ 'deliveryInfo.email': 1 });
 
 export async function getOrderModel() {
   const connection = await initOrderConnection();

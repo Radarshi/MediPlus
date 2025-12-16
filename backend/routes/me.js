@@ -2,6 +2,7 @@
 import express from 'express';
 import jwt from 'jsonwebtoken';
 import User from '../models/user.js';
+import verifyToken from '../utils/verifytoken.js';
 
 const router = express.Router();
 

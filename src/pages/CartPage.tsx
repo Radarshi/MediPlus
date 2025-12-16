@@ -253,7 +253,7 @@ const CartPage = () => {
 
                               <div className="text-right">
                                 <div className="font-bold text-xl text-green-600">
-                                  ${(Number(item.price) * Number(item.quantity)).toFixed(2)}
+                                  ₹{(Number(item.price) * Number(item.quantity)).toFixed(2)}
                                 </div>
                                 {hasDiscount && (
                                   <div className="text-sm text-gray-500 line-through">
@@ -306,7 +306,7 @@ const CartPage = () => {
                       </div>
                       <p className="text-sm text-green-600">{appliedCoupon.description}</p>
                       <p className="text-xs text-green-700 mt-1 font-semibold">
-                        You saved ${calculateCouponDiscount().toFixed(2)}!
+                        You saved ₹{calculateCouponDiscount().toFixed(2)}!
                       </p>
                     </div>
                   ) : (
@@ -357,7 +357,7 @@ const CartPage = () => {
                                 <div className="text-xs text-gray-600">{coupon.description}</div>
                                 {coupon.minOrder > 0 && (
                                   <div className="text-xs text-gray-500 mt-1">
-                                    Min. order: ${coupon.minOrder}
+                                    Min. order: ₹{coupon.minOrder}
                                   </div>
                                 )}
                               </div>
@@ -378,20 +378,20 @@ const CartPage = () => {
                 <CardContent className="space-y-3">
                   <div className="flex justify-between text-gray-600">
                     <span>Total MRP</span>
-                    <span>${calculateOriginalTotal().toFixed(2)}</span>
+                    <span>₹{calculateOriginalTotal().toFixed(2)}</span>
                   </div>
 
                   {calculateDiscount() > 0 && (
                     <div className="flex justify-between text-green-600">
                       <span>Discount on MRP</span>
-                      <span>- ${calculateDiscount().toFixed(2)}</span>
+                      <span>- ₹{calculateDiscount().toFixed(2)}</span>
                     </div>
                   )}
 
                   {appliedCoupon && calculateCouponDiscount() > 0 && (
                     <div className="flex justify-between text-green-600">
                       <span>Coupon Discount</span>
-                      <span>- ${calculateCouponDiscount().toFixed(2)}</span>
+                      <span>- ₹{calculateCouponDiscount().toFixed(2)}</span>
                     </div>
                   )}
 
@@ -405,17 +405,17 @@ const CartPage = () => {
                     <span>
                       {calculateDeliveryCharge() === 0 ? (
                         <span className="text-green-600">
-                          <span className="line-through text-gray-400">$4.99</span> FREE
+                          <span className="line-through text-gray-400">₹4.99</span> FREE
                         </span>
                       ) : (
-                        `$${calculateDeliveryCharge().toFixed(2)}`
+                        `₹${calculateDeliveryCharge().toFixed(2)}`
                       )}
                     </span>
                   </div>
 
                   <div className="border-t pt-3 flex justify-between font-bold text-lg">
                     <span>Amount to be paid</span>
-                    <span className="text-green-600">${calculateTotal().toFixed(2)}</span>
+                    <span className="text-green-600">₹{calculateTotal().toFixed(2)}</span>
                   </div>
 
                   {calculateTotalSavings() > 0 && (
@@ -423,7 +423,7 @@ const CartPage = () => {
                       <div className="flex items-center gap-2 text-green-700">
                         <AlertCircle className="w-4 h-4" />
                         <span className="text-sm font-semibold">
-                          Total Savings: ${calculateTotalSavings().toFixed(2)}
+                          Total Savings: ₹{calculateTotalSavings().toFixed(2)}
                         </span>
                       </div>
                     </div>

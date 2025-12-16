@@ -266,7 +266,7 @@ const StorePage = () => {
 
                             <div className="flex items-center justify-between mb-4">
                               <div>
-                                <span className="text-2xl font-bold text-green-600">${medicine.price}</span>
+                                <span className="text-2xl font-bold text-green-600">₹{medicine.price}</span>
                                 {medicine.original_price > medicine.price && (
                                   <span className="text-sm text-gray-500 line-through ml-2">
                                     ${medicine.original_price}
@@ -281,10 +281,19 @@ const StorePage = () => {
                           </div>
 
                           <div className="flex gap-2 mt-2">
-                            <Button
-                              className="flex-1 bg-gradient-to-r from-blue-500/90 to-green-500/90 hover:from-blue-600 hover:to-green-600 text-white rounded-lg"
-                              onClick={() => addToCart({ id: medicine.id, name: medicine.name, price: medicine.price })}
-                            >
+                           <Button
+  className="flex-1 bg-gradient-to-r from-blue-500/90 to-green-500/90"
+  onClick={() => addToCart({ 
+    id: medicine.id.toString(), 
+    name: medicine.name, 
+    price: medicine.price,
+    generic_name: medicine.generic_name,
+    manufacturer: medicine.manufacturer,
+    dosage: medicine.dosage,
+    image_url: medicine.image_url,
+    prescription: medicine.prescription  
+  })}
+>
                               <ShoppingCart className="w-4 h-4 mr-2" />
                               Add to Cart
                             </Button>

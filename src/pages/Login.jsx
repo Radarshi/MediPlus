@@ -8,22 +8,30 @@ export default function Login() {
 
   const handleLogin = async (form) => {
     try {
-      const res = await fetch('http://localhost:3000/auth/login', {
+      const res = await fetch('http://localhost:3000/api/auth/login', { // ✅ FIXED URL
         method: 'POST',
+        credentials: 'include', // ✅ ADDED - Send cookies
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: form.email, password: form.password }),
       });
+      
       const data = await res.json();
+      
       if (!res.ok) {
         alert(data.error || 'Login failed');
         return;
       }
+      
+      // Store token in localStorage as backup
       localStorage.setItem('token', data.token);
       localStorage.setItem('user', JSON.stringify(data.user));
-      navigate('/dashboard');
+      
+      // Navigate to home or dashboard
+      navigate('/');
+      
     } catch (err) {
-      console.error(err);
-      alert('Login failed');
+      console.error('Login error:', err);
+      alert('Login failed. Please try again.');
     }
   };
 

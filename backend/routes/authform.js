@@ -1,281 +1,269 @@
 import express from 'express';
 import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
-import generateToken from '../generatetoken.js';
+import passport from 'passport';
+import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
 import User from '../models/user.js';
+import generateToken from '../utils/generatetoken.js';
 
 const router = express.Router();
 
-// Password validation function
-const validatePassword = (password) => {
-  const hasUpperCase = /[A-Z]/.test(password);
-  const hasLowerCase = /[a-z]/.test(password);
-  const hasNumber = /[0-9]/.test(password);
-  const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(password);
-  const isLongEnough = password.length >= 8;
-
-  return hasUpperCase && hasLowerCase && hasNumber && hasSpecialChar && isLongEnough;
-};
-
-// POST /api/signup
-router.post('/api/signup', async (req, res) => {
-  try {
-    const { name, age, gender, email, phone, password } = req.body;
-
-    if (!name || !age || !gender || !email || !phone || !password) {
-      return res.status(400).json({ error: 'All fields are required' });
-    }
-
-    if (!validatePassword(password)) {
-      return res.status(400).json({
-        error: 'Password must include uppercase, lowercase, number, special character and be 8+ chars long'
-      });
-    }
-
-    const exists = await User.findOne({ email });
-    if (exists) return res.status(400).json({ error: 'Email already registered' });
-
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    const user = await User.create({
-      name, age, gender, email, phone, password: hashedPassword
-    });
-
-    const token = generateToken(user._id);
-
-    res.status(201).json({
-      token,
-      user: { 
-        id: user._id, 
-        userId: user.userId, 
-        name: user.name, 
-        email: user.email,
-        age: user.age,
-        gender: user.gender,
-        phone: user.phone,
-        picture: user.picture || null
-      }
-    });
-
-  } catch (err) {
-    console.error('Signup error:', err);
-    res.status(500).json({ error: 'Server error during signup' });
-  }
-});
-
-// POST /auth/login
-router.post('/auth/login', async (req, res) => {
-  try {
-    const { email, password } = req.body;
-
-    if (!email || !password)
-      return res.status(400).json({ error: 'Email and password are required' });
-
-    const user = await User.findOne({ email });
-    if (!user) return res.status(400).json({ error: 'Invalid credentials' });
-
-    const valid = await bcrypt.compare(password, user.password);
-    if (!valid) return res.status(400).json({ error: 'Invalid credentials' });
-
-    const token = generateToken(user._id);
-
-    res.json({
-      token,
-      user: { 
-        id: user._id, 
-        userId: user.userId, 
-        name: user.name, 
-        email: user.email,
-        age: user.age,
-        gender: user.gender,
-        phone: user.phone,
-        picture: user.picture || null
-      }
-    });
-
-  } catch (err) {
-    console.error('Login error:', err);
-    res.status(500).json({ error: 'Server error during login' });
-  }
-});
-
-// -------------------- GOOGLE AUTH -------------------------
-
-// STEP 1: Redirect user to Google login page
-router.get('/auth/google', (req, res) => {
-  const googleAuthUrl =
-    `https://accounts.google.com/o/oauth2/v2/auth?` +
-    `client_id=${process.env.GOOGLE_CLIENT_ID}` +
-    `&redirect_uri=${process.env.GOOGLE_REDIRECT_URI}` +
-    `&response_type=code` +
-    `&scope=profile email`;
-
-  res.redirect(googleAuthUrl);
-});
-
-// STEP 2: Google redirects back to our backend - FIXED VERSION
-router.get('/auth/google/callback', async (req, res) => {
-  try {
-    const { code } = req.query;
-
-    if (!code) return res.redirect('http://localhost:8080/login?error=no_code');
-
-    // Exchange code for tokens
-    const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
-      method: 'POST',
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        code,
-        client_id: process.env.GOOGLE_CLIENT_ID,
-        client_secret: process.env.GOOGLE_CLIENT_SECRET,
-        redirect_uri: process.env.GOOGLE_REDIRECT_URI,
-        grant_type: 'authorization_code'
-      })
-    });
-
-    const tokenData = await tokenResponse.json();
-
-    if (!tokenData.access_token)
-      return res.redirect('http://localhost:8080/login?error=token_failed');
-
-    // Fetch user profile
-    const userResponse = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
-      headers: { Authorization: `Bearer ${tokenData.access_token}` }
-    });
-
-    const googleUser = await userResponse.json();
-
-    let user = await User.findOne({ email: googleUser.email });
-
-    if (!user) {
-      user = await User.create({
-        name: googleUser.name,
-        email: googleUser.email,
-        googleId: googleUser.id,
-        picture: googleUser.picture,
-        age: 0,
-        gender: "other",
-        phone: "",
-        password: await bcrypt.hash(Math.random().toString(36), 10)
-      });
-    } else {
-      // Update picture if it's a Google user
-      if (!user.picture && googleUser.picture) {
-        user.picture = googleUser.picture;
-        await user.save();
-      }
-    }
-
-    const token = generateToken(user._id);
-    
-    // FIXED: Properly encode user data as JSON string
-    const userDataEncoded = encodeURIComponent(JSON.stringify({
-      id: user._id,
-      userId: user.userId,
-      name: user.name,
-      email: user.email,
-      age: user.age,
-      gender: user.gender,
-      phone: user.phone,
-      picture: user.picture
-    }));
-
-    // Redirect frontend with token and user data
-    return res.redirect(`http://localhost:8080/auth/success?token=${token}&user=${userDataEncoded}`);
-
-  } catch (err) {
-    console.error("Google OAuth error:", err);
-    return res.redirect('http://localhost:8080/login?error=oauth_failed');
-  }
-});
-
-// -------------------- UPDATE PROFILE -------------------------
-
-// PUT /api/update-profile - Update user profile
-router.put('/api/update-profile', async (req, res) => {
-  try {
-    // Get token from Authorization header
-    const auth = req.headers.authorization || '';
-    const token = auth.startsWith('Bearer ') ? auth.split(' ')[1] : null;
-
-    if (!token) {
-      return res.status(401).json({ error: 'No token provided' });
-    }
-
-    // Verify JWT token
-    let decoded;
+// ============================================
+// GOOGLE OAUTH CONFIGURATION
+// ============================================
+passport.use(new GoogleStrategy({
+    clientID: process.env.GOOGLE_CLIENT_ID,
+    clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+    callbackURL: "http://localhost:3000/auth/google/callback",
+    passReqToCallback: true
+  },
+  async (req, accessToken, refreshToken, profile, done) => {
     try {
-      decoded = jwt.verify(token, process.env.JWT_SECRET);
-    } catch (err) {
-      return res.status(401).json({ error: 'Invalid or expired token' });
-    }
-
-    // Extract fields from request body
-    const { name, phone, age, gender } = req.body;
-
-    // Validate phone if provided
-    if (phone && phone.trim() && !/^\d{10}$/.test(phone.trim())) {
-      return res.status(400).json({ error: 'Phone must be exactly 10 digits' });
-    }
-
-    // Validate age if provided
-    if (age !== undefined && age !== null && age !== '') {
-      const ageNum = parseInt(age);
-      if (isNaN(ageNum) || ageNum < 1 || ageNum > 120) {
-        return res.status(400).json({ error: 'Age must be between 1 and 120' });
+      console.log('🔍 Google OAuth Profile:', profile.displayName);
+      
+      // Find or create user
+      let user = await User.findOne({ googleId: profile.id });
+      
+      if (!user) {
+        // Check if email already exists
+        user = await User.findOne({ email: profile.emails[0].value });
+        
+        if (user) {
+          // User exists with this email, link Google account
+          user.googleId = profile.id;
+          user.picture = profile.photos[0]?.value;
+          await user.save();
+          console.log('✅ Linked Google account to existing user');
+        } else {
+          // Create new user
+          user = await User.create({
+            googleId: profile.id,
+            name: profile.displayName,
+            email: profile.emails[0].value,
+            picture: profile.photos[0]?.value,
+            password: await bcrypt.hash('google-oauth-' + profile.id, 10), // Dummy password
+            role: 'patient'
+          });
+          console.log('✅ New user created via Google OAuth');
+        }
       }
+      
+      return done(null, user);
+    } catch (error) {
+      console.error('❌ Google OAuth error:', error);
+      return done(error, null);
     }
+  }
+));
 
-    // Validate gender
-    if (gender && !['male', 'female', 'other'].includes(gender.toLowerCase())) {
-      return res.status(400).json({ error: 'Gender must be male, female, or other' });
-    }
+// Serialize user for passport
+passport.serializeUser((user, done) => {
+  done(null, user._id);
+});
 
-    // Find user in database
-    const user = await User.findById(decoded.id);
+passport.deserializeUser(async (id, done) => {
+  try {
+    const user = await User.findById(id);
+    done(null, user);
+  } catch (error) {
+    done(error, null);
+  }
+});
+
+// ============================================
+// POST /api/auth/login - Regular Login
+// ============================================
+router.post('/api/auth/login', async (req, res) => {
+  console.log('🔐 Login attempt:', req.body.email);
+  
+  const { email, password } = req.body;
+
+  try {
+    // Find user
+    const user = await User.findOne({ email });
     if (!user) {
-      return res.status(404).json({ error: 'User not found' });
+      console.log('❌ User not found:', email);
+      return res.status(401).json({ error: 'Invalid email or password' });
     }
 
-    // Update fields (only if provided)
-    if (name && name.trim()) {
-      user.name = name.trim();
-    }
-    
-    if (phone !== undefined) {
-      user.phone = phone.trim();
-    }
-    
-    if (age !== undefined && age !== null && age !== '') {
-      user.age = parseInt(age) || 0;
-    }
-    
-    if (gender) {
-      user.gender = gender.toLowerCase();
+    // Check password
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    if (!isPasswordValid) {
+      console.log('❌ Invalid password for:', email);
+      return res.status(401).json({ error: 'Invalid email or password' });
     }
 
-    // Save updated user
-    await user.save();
+    console.log('✅ Login successful for:', email);
 
-    // Return updated user object
+    // Generate JWT token
+    const token = generateToken(user._id);
+    console.log('✅ Token generated:', token.substring(0, 20) + '...');
+
+    // Set token in HttpOnly cookie
+    res.cookie('token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+      path: '/'
+    });
+    
+    console.log('✅ Cookie set successfully');
+
+    // Send user data (without password)
     res.json({
-      message: 'Profile updated successfully',
+      success: true,
+      message: 'Login successful',
       user: {
-        id: user._id,
+        _id: user._id,
         userId: user.userId,
         name: user.name,
         email: user.email,
-        age: user.age,
-        gender: user.gender,
         phone: user.phone,
-        picture: user.picture || null
-      }
+        role: user.role,
+        picture: user.picture
+      },
+      token
     });
 
-  } catch (err) {
-    console.error('Update profile error:', err);
-    res.status(500).json({ error: 'Server error during profile update' });
+  } catch (error) {
+    console.error('❌ Login error:', error);
+    res.status(500).json({ error: 'Login failed' });
   }
 });
+
+// ============================================
+// POST /api/auth/logout - Logout
+// ============================================
+router.post('/api/auth/logout', (req, res) => {
+  console.log('👋 Logout request');
+  
+  // Clear the cookie
+  res.clearCookie('token', {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    path: '/'
+  });
+
+  console.log('✅ Cookie cleared');
+
+  res.json({ 
+    success: true, 
+    message: 'Logged out successfully' 
+  });
+});
+
+// ============================================
+// POST /api/auth/signup - Signup
+// ============================================
+router.post('/api/auth/signup', async (req, res) => {
+  console.log('📝 Signup attempt:', req.body.email);
+  
+  const { name, email, password, phone } = req.body;
+
+  try {
+    // Check if user exists
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      console.log('❌ Email already exists:', email);
+      return res.status(400).json({ error: 'Email already registered' });
+    }
+
+    // Hash password
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Create user
+    const user = await User.create({
+      name,
+      email,
+      password: hashedPassword,
+      phone,
+      role: 'patient'
+    });
+
+    console.log('✅ User created:', email);
+
+    // Generate token
+    const token = generateToken(user._id);
+    console.log('✅ Token generated for new user');
+
+    // Set cookie
+    res.cookie('token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+      path: '/'
+    });
+
+    console.log('✅ Cookie set for new user');
+
+    res.status(201).json({
+      success: true,
+      message: 'Account created successfully',
+      user: {
+        _id: user._id,
+        userId: user.userId,
+        name: user.name,
+        email: user.email,
+        phone: user.phone,
+        role: user.role
+      },
+      token
+    });
+
+  } catch (error) {
+    console.error('❌ Signup error:', error);
+    res.status(500).json({ error: 'Signup failed' });
+  }
+});
+
+// ============================================
+// GET /auth/google - Initiate Google OAuth
+// ============================================
+router.get('/auth/google',
+  passport.authenticate('google', { 
+    scope: ['profile', 'email'],
+    session: false
+  })
+);
+
+// ============================================
+// GET /auth/google/callback - Google OAuth Callback
+// ============================================
+router.get('/auth/google/callback', 
+  passport.authenticate('google', { 
+    session: false,
+    failureRedirect: 'http://localhost:8080/login?error=google_auth_failed'
+  }),
+  (req, res) => {
+    console.log('✅ Google OAuth successful for:', req.user.email);
+    
+    try {
+      // Generate token
+      const token = generateToken(req.user._id);
+      console.log('✅ Token generated for Google user');
+      
+      // Set cookie
+      res.cookie('token', token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 7 * 24 * 60 * 60 * 1000,
+        path: '/'
+      });
+      
+      console.log('✅ Cookie set for Google user');
+      
+      // Redirect to frontend with token in URL as backup
+      const redirectUrl = `http://localhost:8080/?token=${token}&login=success`;
+      res.redirect(redirectUrl);
+      
+    } catch (error) {
+      console.error('❌ Google OAuth callback error:', error);
+      res.redirect('http://localhost:8080/login?error=auth_failed');
+    }
+  }
+);
 
 export default router;

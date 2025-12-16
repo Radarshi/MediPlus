@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import {
   MapPin, CreditCard, CheckCircle, ShoppingBag, Truck, Clock,
-  User, Phone, Mail, Home, Calendar, Lock, Shield, ArrowLeft, ArrowRight
+  User, Phone, Mail, Home, Calendar, Lock, Shield, ArrowLeft, ArrowRight,
+  Upload, FileText, AlertCircle, X
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,13 +12,15 @@ import { Input } from '@/components/ui/input';
 import { useCart } from '@/components/cartcontext.tsx';
 
 const CheckoutPage = () => {
-  const { cart, clearCart } = useCart();     // Get cart data and clearCart function from context
+  const { cart, clearCart, getCartTotal } = useCart();
+  const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(1);
   const [isProcessing, setIsProcessing] = useState(false);
   const [orderPlaced, setOrderPlaced] = useState(false);
   const [orderId, setOrderId] = useState('');
+  const [prescriptionFile, setPrescriptionFile] = useState(null);
+  const [showConsultationDialog, setShowConsultationDialog] = useState(false);
 
-  // Form state, store delivery information form data
   const [deliveryInfo, setDeliveryInfo] = useState({
     fullName: '',
     email: '',
@@ -36,20 +40,11 @@ const CheckoutPage = () => {
     paymentMethod: 'card'
   });
 
-  // Calculate totals
+  // Check if any item requires prescription
+  const requiresPrescription = cart.some(item => item.prescription === true);
+
   const calculateSubtotal = () => {
     return cart.reduce((sum, item) => sum + (Number(item.price) * Number(item.quantity)), 0);
-  };
-
-  const calculateOriginalTotal = () => {
-    return cart.reduce((sum, item) => {
-      const originalPrice = item.originalPrice || item.original_price || item.price;
-      return sum + (Number(originalPrice) * Number(item.quantity));
-    }, 0);
-  };
-
-  const calculateDiscount = () => {
-    return calculateOriginalTotal() - calculateSubtotal();
   };
 
   const calculateDeliveryCharge = () => {
@@ -61,7 +56,6 @@ const CheckoutPage = () => {
     return calculateSubtotal() + calculateDeliveryCharge();
   };
 
-  // Handle form changes
   const handleDeliveryChange = (field, value) => {
     setDeliveryInfo(prev => ({ ...prev, [field]: value }));
   };
@@ -70,43 +64,122 @@ const CheckoutPage = () => {
     setPaymentInfo(prev => ({ ...prev, [field]: value }));
   };
 
-  // Validate delivery info
+  const handlePrescriptionUpload = (e) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      if (file.size > 5 * 1024 * 1024) {
+        alert('File size should be less than 5MB');
+        return;
+      }
+      setPrescriptionFile(file);
+    }
+  };
+
+  const removePrescription = () => {
+    setPrescriptionFile(null);
+  };
+
+  const handleConsultationRequest = async () => {
+    const token = window.localStorage?.getItem('token');
+
+  
+    
+    try {
+      const response = await fetch('http://localhost:3000/api/orders/request-consultation', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          medicineNames: cart.filter(item => item.prescription).map(item => item.name).join(', '),
+          symptoms: 'User requested consultation',
+          reason: 'No prescription available'
+        })
+      });
+
+      if (response.ok) {
+        alert('Consultation request submitted! A doctor will contact you within 24 hours.');
+        setShowConsultationDialog(false);
+      }
+    } catch (error) {
+      console.error('Consultation request failed:', error);
+      alert('Failed to submit consultation request. Please try again.');
+    }
+  };
+
   const validateDeliveryInfo = () => {
     const { fullName, email, phone, address, city, state, zipCode } = deliveryInfo;
     return fullName && email && phone && address && city && state && zipCode;
   };
 
-  // Validate payment info
   const validatePaymentInfo = () => {
     if (paymentInfo.paymentMethod === 'cod') return true;
     const { cardNumber, cardName, expiryDate, cvv } = paymentInfo;
     return cardNumber && cardName && expiryDate && cvv;
   };
 
-  // Handle order placement
   const handlePlaceOrder = async () => {
-    setIsProcessing(true);
-    
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    
-    // Generate order ID
-    const newOrderId = 'MD' + Math.random().toString(36).substr(2, 9).toUpperCase();
-    setOrderId(newOrderId);
-    
-    setIsProcessing(false);
-    setOrderPlaced(true);
-    clearCart();
+    if (requiresPrescription && !prescriptionFile) {
+      setShowConsultationDialog(true);
+      return;
+    }
+ const token = window.localStorage?.getItem('token');
+  if (!token) {
+    alert('Your session has expired. Please login again.');
+    navigate('/login');
+    return;
+  }
+
+  setIsProcessing(true);
+
+    try {
+      const formData = new FormData();
+      
+      formData.append('deliveryInfo', JSON.stringify(deliveryInfo));
+      formData.append('items', JSON.stringify(cart));
+      formData.append('paymentMethod', paymentInfo.paymentMethod);
+      formData.append('paymentStatus', paymentInfo.paymentMethod === 'card' ? 'paid' : 'pending');
+      formData.append('subtotal', calculateSubtotal().toString());
+      formData.append('discount', '0');
+      formData.append('deliveryCharge', calculateDeliveryCharge().toString());
+      formData.append('total', calculateTotal().toString());
+      
+      if (prescriptionFile) {
+        formData.append('prescription', prescriptionFile);
+      }
+
+      const response = await fetch('http://localhost:3000/api/orders/create', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        body: formData
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        setOrderId(data.orderId);
+        setOrderPlaced(true);
+        clearCart();
+      } else {
+        alert(data.error || 'Failed to place order');
+      }
+    } catch (error) {
+      console.error('Order placement error:', error);
+      alert('Failed to place order. Please try again.');
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
-  // Steps configuration
   const steps = [
     { number: 1, title: 'Delivery Details', icon: MapPin },
     { number: 2, title: 'Payment', icon: CreditCard },
     { number: 3, title: 'Review Order', icon: ShoppingBag }
   ];
 
-  // Order Success Screen
   if (orderPlaced) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50 py-12">
@@ -130,6 +203,7 @@ const CheckoutPage = () => {
                 <h1 className="text-3xl font-bold mb-4 text-green-600">Order Placed Successfully!</h1>
                 <p className="text-gray-600 mb-6">
                   Thank you for your order. We've received your order and will process it shortly.
+                  A confirmation email has been sent to {deliveryInfo.email}
                 </p>
 
                 <div className="bg-gray-50 rounded-lg p-6 mb-6">
@@ -139,7 +213,7 @@ const CheckoutPage = () => {
                   <div className="grid grid-cols-2 gap-4 text-left">
                     <div>
                       <div className="text-sm text-gray-500">Order Total</div>
-                      <div className="font-bold text-lg">${calculateTotal().toFixed(2)}</div>
+                      <div className="font-bold text-lg">₹{calculateTotal().toFixed(2)}</div>
                     </div>
                     <div>
                       <div className="text-sm text-gray-500">Delivery To</div>
@@ -154,16 +228,18 @@ const CheckoutPage = () => {
                 </div>
 
                 <div className="flex gap-4">
-                  <a href="/" className="flex-1">
-                    <Button variant="outline" className="w-full">
-                      Back to Home
-                    </Button>
-                  </a>
-                  <a href="/store" className="flex-1">
-                    <Button className="w-full bg-gradient-to-r from-blue-500 to-green-500">
-                      Continue Shopping
-                    </Button>
-                  </a>
+                  <button 
+                    onClick={() => navigate('/')} 
+                    className="flex-1 px-6 py-3 border-2 border-gray-300 rounded-xl font-semibold hover:bg-gray-50 transition-colors"
+                  >
+                    Back to Home
+                  </button>
+                  <button 
+                    onClick={() => navigate('/orders')} 
+                    className="flex-1 px-6 py-3 bg-gradient-to-r from-blue-500 to-green-500 text-white rounded-xl font-semibold hover:brightness-110 transition-all"
+                  >
+                    View Order
+                  </button>
                 </div>
               </CardContent>
             </Card>
@@ -173,7 +249,6 @@ const CheckoutPage = () => {
     );
   }
 
-  // Empty cart redirect
   if (cart.length === 0 && !orderPlaced) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50 py-12">
@@ -181,11 +256,12 @@ const CheckoutPage = () => {
           <ShoppingBag className="w-24 h-24 mx-auto text-gray-300 mb-6" />
           <h2 className="text-3xl font-bold mb-4">Your cart is empty</h2>
           <p className="text-gray-600 mb-8">Add some items before checkout</p>
-          <a href="/store">
-            <Button className="bg-gradient-to-r from-blue-500 to-green-500">
-              Browse Store
-            </Button>
-          </a>
+          <button 
+            onClick={() => navigate('/store')}
+            className="px-6 py-3 bg-gradient-to-r from-blue-500 to-green-500 text-white rounded-xl font-semibold"
+          >
+            Browse Store
+          </button>
         </div>
       </div>
     );
@@ -194,18 +270,17 @@ const CheckoutPage = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50 py-8">
       <div className="container mx-auto px-6">
-        {/* Header */}
         <div className="mb-8">
-          <a href="/cart">
-            <Button variant="ghost" className="mb-4 text-gray-600 hover:text-gray-800">
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Back to Cart
-            </Button>
-          </a>
+          <button 
+            onClick={() => navigate('/cart')}
+            className="flex items-center gap-2 text-gray-600 hover:text-gray-800 mb-4"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Back to Cart
+          </button>
           <h1 className="text-3xl font-bold">Checkout</h1>
         </div>
 
-        {/* Progress Steps */}
         <div className="mb-8">
           <div className="flex items-center justify-center gap-4">
             {steps.map((step, index) => (
@@ -236,18 +311,125 @@ const CheckoutPage = () => {
           </div>
         </div>
 
+        {showConsultationDialog && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="bg-white rounded-2xl p-6 max-w-md w-full"
+            >
+              <div className="flex items-start gap-4 mb-4">
+                <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center flex-shrink-0">
+                  <AlertCircle className="w-6 h-6 text-orange-600" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-xl font-bold mb-2">Prescription Required</h3>
+                  <p className="text-gray-600 text-sm mb-4">
+                    Some items in your cart require a prescription. You can either upload a prescription or request a quick consultation with our doctor.
+                  </p>
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <button
+                  onClick={() => setShowConsultationDialog(false)}
+                  className="w-full px-4 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors"
+                >
+                  Upload Prescription
+                </button>
+                <button
+                  onClick={handleConsultationRequest}
+                  className="w-full px-4 py-3 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 transition-colors"
+                >
+                  Request Doctor Consultation
+                </button>
+                <button
+                  onClick={() => setShowConsultationDialog(false)}
+                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg font-semibold hover:bg-gray-50 transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Main Content */}
           <div className="lg:col-span-2">
             <AnimatePresence mode="wait">
-              {/* Step 1: Delivery Details */}
               {currentStep === 1 && (
                 <motion.div
                   key="step1"
                   initial={{ opacity: 0, x: 20 }}
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -20 }}
+                  className="space-y-6"
                 >
+                  {requiresPrescription && (
+                    <Card className="border-2 border-orange-200 bg-orange-50">
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2 text-orange-800">
+                          <FileText className="w-5 h-5" />
+                          Prescription Required
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <p className="text-sm text-orange-700 mb-4">
+                          Some items require a prescription. Please upload your prescription or request a doctor consultation.
+                        </p>
+
+                        {prescriptionFile ? (
+                          <div className="bg-white p-4 rounded-lg border-2 border-orange-200">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-3">
+                                <FileText className="w-8 h-8 text-green-600" />
+                                <div>
+                                  <p className="font-semibold">{prescriptionFile.name}</p>
+                                  <p className="text-sm text-gray-500">
+                                    {(prescriptionFile.size / 1024).toFixed(2)} KB
+                                  </p>
+                                </div>
+                              </div>
+                              <button
+                                onClick={removePrescription}
+                                className="text-red-500 hover:text-red-700"
+                              >
+                                <X className="w-5 h-5" />
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="space-y-3">
+                            <label className="block">
+                              <div className="border-2 border-dashed border-orange-300 rounded-lg p-6 text-center cursor-pointer hover:border-orange-400 hover:bg-orange-100/50 transition-colors">
+                                <Upload className="w-8 h-8 mx-auto mb-2 text-orange-600" />
+                                <p className="font-semibold text-gray-800">Upload Prescription</p>
+                                <p className="text-sm text-gray-500 mt-1">PNG, JPG, PDF (Max 5MB)</p>
+                                <input
+                                  type="file"
+                                  accept=".png,.jpg,.jpeg,.pdf"
+                                  onChange={handlePrescriptionUpload}
+                                  className="hidden"
+                                />
+                              </div>
+                            </label>
+                            
+                            <div className="text-center">
+                              <span className="text-sm text-gray-500">or</span>
+                            </div>
+
+                            <button
+                              onClick={() => setShowConsultationDialog(true)}
+                              className="w-full px-4 py-3 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 transition-colors"
+                            >
+                              Request Doctor Consultation
+                            </button>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  )}
+
                   <Card>
                     <CardHeader>
                       <CardTitle className="flex items-center gap-2">
@@ -289,7 +471,7 @@ const CheckoutPage = () => {
                         <div className="relative">
                           <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
                           <Input
-                            placeholder="+1 (555) 000-0000"
+                            placeholder="+91 9876543210"
                             value={deliveryInfo.phone}
                             onChange={(e) => handleDeliveryChange('phone', e.target.value)}
                             className="pl-10"
@@ -314,7 +496,7 @@ const CheckoutPage = () => {
                         <div>
                           <label className="block text-sm font-medium mb-2">City *</label>
                           <Input
-                            placeholder="New York"
+                            placeholder="Kolkata"
                             value={deliveryInfo.city}
                             onChange={(e) => handleDeliveryChange('city', e.target.value)}
                           />
@@ -322,7 +504,7 @@ const CheckoutPage = () => {
                         <div>
                           <label className="block text-sm font-medium mb-2">State *</label>
                           <Input
-                            placeholder="NY"
+                            placeholder="West Bengal"
                             value={deliveryInfo.state}
                             onChange={(e) => handleDeliveryChange('state', e.target.value)}
                           />
@@ -330,7 +512,7 @@ const CheckoutPage = () => {
                         <div>
                           <label className="block text-sm font-medium mb-2">ZIP Code *</label>
                           <Input
-                            placeholder="10001"
+                            placeholder="700001"
                             value={deliveryInfo.zipCode}
                             onChange={(e) => handleDeliveryChange('zipCode', e.target.value)}
                           />
@@ -340,7 +522,7 @@ const CheckoutPage = () => {
                       <div>
                         <label className="block text-sm font-medium mb-2">Landmark (Optional)</label>
                         <Input
-                          placeholder="Near Central Park"
+                          placeholder="Near Victoria Memorial"
                           value={deliveryInfo.landmark}
                           onChange={(e) => handleDeliveryChange('landmark', e.target.value)}
                         />
@@ -349,7 +531,7 @@ const CheckoutPage = () => {
                       <Button
                         className="w-full bg-gradient-to-r from-blue-500 to-green-500 mt-6"
                         onClick={() => setCurrentStep(2)}
-                        disabled={!validateDeliveryInfo()}
+                        disabled={!validateDeliveryInfo() || (requiresPrescription && !prescriptionFile)}
                       >
                         Continue to Payment
                         <ArrowRight className="w-4 h-4 ml-2" />
@@ -359,7 +541,6 @@ const CheckoutPage = () => {
                 </motion.div>
               )}
 
-              {/* Step 2: Payment */}
               {currentStep === 2 && (
                 <motion.div
                   key="step2"
@@ -375,7 +556,6 @@ const CheckoutPage = () => {
                       </CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-6">
-                      {/* Payment Method Selection */}
                       <div className="space-y-3">
                         <div
                           onClick={() => handlePaymentChange('paymentMethod', 'card')}
@@ -434,7 +614,6 @@ const CheckoutPage = () => {
                         </div>
                       </div>
 
-                      {/* Card Details Form */}
                       {paymentInfo.paymentMethod === 'card' && (
                         <motion.div
                           initial={{ opacity: 0, height: 0 }}
@@ -525,7 +704,6 @@ const CheckoutPage = () => {
                 </motion.div>
               )}
 
-              {/* Step 3: Review Order */}
               {currentStep === 3 && (
                 <motion.div
                   key="step3"
@@ -534,7 +712,6 @@ const CheckoutPage = () => {
                   exit={{ opacity: 0, x: -20 }}
                   className="space-y-6"
                 >
-                  {/* Delivery Address */}
                   <Card>
                     <CardHeader>
                       <div className="flex items-center justify-between">
@@ -563,7 +740,6 @@ const CheckoutPage = () => {
                     </CardContent>
                   </Card>
 
-                  {/* Payment Method */}
                   <Card>
                     <CardHeader>
                       <div className="flex items-center justify-between">
@@ -603,7 +779,28 @@ const CheckoutPage = () => {
                     </CardContent>
                   </Card>
 
-                  {/* Order Items */}
+                  {prescriptionFile && (
+                    <Card className="border-2 border-green-200 bg-green-50">
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2 text-green-800">
+                          <FileText className="w-5 h-5" />
+                          Prescription Uploaded
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="flex items-center gap-3">
+                          <FileText className="w-8 h-8 text-green-600" />
+                          <div>
+                            <p className="font-semibold">{prescriptionFile.name}</p>
+                            <p className="text-sm text-gray-500">
+                              {(prescriptionFile.size / 1024).toFixed(2)} KB
+                            </p>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+
                   <Card>
                     <CardHeader>
                       <CardTitle className="flex items-center gap-2">
@@ -626,7 +823,7 @@ const CheckoutPage = () => {
                             <p className="text-sm text-gray-500">Qty: {item.quantity}</p>
                           </div>
                           <div className="text-right">
-                            <p className="font-bold">${(Number(item.price) * Number(item.quantity)).toFixed(2)}</p>
+                            <p className="font-bold">₹{(Number(item.price) * Number(item.quantity)).toFixed(2)}</p>
                           </div>
                         </div>
                       ))}
@@ -665,7 +862,6 @@ const CheckoutPage = () => {
             </AnimatePresence>
           </div>
 
-          {/* Order Summary Sidebar */}
           <div className="lg:col-span-1">
             <div className="sticky top-24">
               <Card>
@@ -675,15 +871,8 @@ const CheckoutPage = () => {
                 <CardContent className="space-y-3">
                   <div className="flex justify-between text-gray-600">
                     <span>Subtotal ({cart.length} items)</span>
-                    <span>${calculateSubtotal().toFixed(2)}</span>
+                    <span>₹{calculateSubtotal().toFixed(2)}</span>
                   </div>
-
-                  {calculateDiscount() > 0 && (
-                    <div className="flex justify-between text-green-600">
-                      <span>Discount</span>
-                      <span>- ${calculateDiscount().toFixed(2)}</span>
-                    </div>
-                  )}
 
                   <div className="flex justify-between text-gray-600">
                     <span>Delivery Charges</span>
@@ -691,20 +880,20 @@ const CheckoutPage = () => {
                       {calculateDeliveryCharge() === 0 ? (
                         <span className="text-green-600">FREE</span>
                       ) : (
-                        `$${calculateDeliveryCharge().toFixed(2)}`
+                        `₹${calculateDeliveryCharge().toFixed(2)}`
                       )}
                     </span>
                   </div>
 
                   <div className="border-t pt-3 flex justify-between font-bold text-lg">
                     <span>Total</span>
-                    <span className="text-green-600">${calculateTotal().toFixed(2)}</span>
+                    <span className="text-green-600">₹{calculateTotal().toFixed(2)}</span>
                   </div>
 
                   <div className="mt-4 space-y-2 pt-4 border-t">
                     <div className="flex items-center gap-2 text-sm text-gray-600">
                       <Truck className="w-4 h-4 text-green-600" />
-                      <span>Free delivery on orders above $50</span>
+                      <span>Free delivery on orders above ₹50</span>
                     </div>
                     <div className="flex items-center gap-2 text-sm text-gray-600">
                       <Clock className="w-4 h-4 text-blue-600" />
@@ -725,4 +914,4 @@ const CheckoutPage = () => {
   );
 };
 
-export default CheckoutPage;
+export default CheckoutPage

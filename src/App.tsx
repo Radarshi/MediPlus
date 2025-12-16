@@ -22,6 +22,8 @@ import CheckoutPage from "./pages/CheckoutPage";
 import UserDashboard from "./pages/UserDashboard";
 import AuthSuccess from "./components/AuthSuccess";
 import Orders from './pages/Orders';
+import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword from './pages/ResetPassword';
 
 
 const queryClient = new QueryClient();
@@ -84,7 +86,8 @@ const App = () => {
                     <Route path="/dashboard" element={<UserDashboard />} />
                     <Route path="/auth/success" element={<AuthSuccess />} />
                     <Route path="/orders" element={<Orders />} />
-
+                    <Route path="/forgot-password" element={<ForgotPassword />} />
+                    <Route path="/reset-password" element={<ResetPassword />} />
 
                   </Routes>
                 </div>

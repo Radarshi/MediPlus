@@ -2,7 +2,8 @@ import dotenv from 'dotenv';
 import express from 'express';
 import nodemailer from 'nodemailer';
 import validator from 'validator'
-import generateToken from '../generatetoken.js';
+import generateToken from '../utils/generatetoken.js';
+import verifyToken from '../utils/verifytoken.js';
 import { getConsultModel } from '../models/consult.js';
 import User from '../models/user.js';
 dotenv.config();
